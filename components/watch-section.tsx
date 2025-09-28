@@ -8,6 +8,9 @@ import { Button } from "@/components/ui/button"
 import { Languages, Settings } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { usePlayer } from "@/contexts/player-context"
+import { useAuth } from "@/contexts/auth-context"
+import { AuthModal } from "@/components/auth-modal"
+import { TimeIndicator } from "@/components/time-indicator"
 
 
 const LANGUAGE_OPTIONS = [
@@ -40,12 +43,28 @@ const QUALITY_OPTIONS = [
 ]
 
 export function WatchSection() {
+  const { isAuthenticated, user } = useAuth()
   const playerRef = useRef<HTMLElement | HTMLVideoElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const [selectedLanguage, setSelectedLanguage] = useState(LANGUAGE_OPTIONS[0])
   const [selectedQuality, setSelectedQuality] = useState(QUALITY_OPTIONS[0])
   const [isLoading, setIsLoading] = useState(true)
-  // Removed custom player state - using Mux Player's native controls
+  const [showAuthModal, setShowAuthModal] = useState(false)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [hasReachedLimit, setHasReachedLimit] = useState(false)
+  const TIME_LIMIT = 1 * 60 // 12 minutos em segundos
+  
+  // Função para testar o limite (apenas para desenvolvimento)
+  const testTimeLimit = () => {
+    console.log('[AUTH] Testing time limit - forcing modal')
+    setHasReachedLimit(true)
+    setShowAuthModal(true)
+    const player = useFallbackPlayer ? videoRef.current : playerRef.current
+    if (player) {
+      const videoPlayer = player as any
+      videoPlayer.pause()
+    }
+  }
   const [error, setError] = useState<string | null>(null)
   const [useFallbackPlayer, setUseFallbackPlayer] = useState(false)
 
@@ -101,6 +120,102 @@ export function WatchSection() {
     loadMuxPlayer()
   }, [])
 
+  // Controle de tempo para restrição de 12 minutos
+  useEffect(() => {
+    if (isLoading) return
+
+    let intervalId: NodeJS.Timeout
+    let timeUpdateListener: (() => void) | null = null
+
+    const checkTime = () => {
+      const player = useFallbackPlayer ? videoRef.current : playerRef.current
+      if (player) {
+        const videoPlayer = player as any
+        const time = videoPlayer.currentTime || 0
+        console.log(`[AUTH] Current time: ${time}s, Limit: ${TIME_LIMIT}s, Authenticated: ${isAuthenticated}`)
+        setCurrentTime(time)
+        
+        // Verificar se atingiu o limite de 12 minutos
+        if (time >= TIME_LIMIT && !isAuthenticated && !hasReachedLimit) {
+          console.log('[AUTH] Time limit reached! Pausing video and showing modal')
+          setHasReachedLimit(true)
+          videoPlayer.pause()
+          setShowAuthModal(true)
+        }
+      }
+    }
+
+    const setupTimeTracking = () => {
+      const player = useFallbackPlayer ? videoRef.current : playerRef.current
+      if (player) {
+        const videoPlayer = player as any
+        console.log('[AUTH] Setting up time tracking')
+        
+        // Adicionar listener de timeupdate
+        timeUpdateListener = checkTime
+        videoPlayer.addEventListener('timeupdate', timeUpdateListener)
+        
+        // Também usar intervalo como backup
+        intervalId = setInterval(checkTime, 1000)
+        
+        console.log('[AUTH] Time tracking setup complete')
+      }
+    }
+
+    // Aguardar um pouco para o player estar pronto
+    const timer = setTimeout(setupTimeTracking, 2000)
+
+    return () => {
+      clearTimeout(timer)
+      if (intervalId) clearInterval(intervalId)
+      
+      const player = useFallbackPlayer ? videoRef.current : playerRef.current
+      if (player && timeUpdateListener) {
+        const videoPlayer = player as any
+        videoPlayer.removeEventListener('timeupdate', timeUpdateListener)
+      }
+    }
+  }, [useFallbackPlayer, isAuthenticated, hasReachedLimit, TIME_LIMIT, isLoading])
+
+  // Funções para o modal de autenticação
+  const handleAuthSuccess = () => {
+    setShowAuthModal(false)
+    setHasReachedLimit(false)
+    // Permitir que o usuário continue assistindo
+    const player = useFallbackPlayer ? videoRef.current : playerRef.current
+    if (player) {
+      const videoPlayer = player as any
+      videoPlayer.play()
+    }
+  }
+
+  const handleAuthClose = () => {
+    setShowAuthModal(false)
+    // Se não autenticado, pausar o vídeo
+    if (!isAuthenticated) {
+      const player = useFallbackPlayer ? videoRef.current : playerRef.current
+      if (player) {
+        const videoPlayer = player as any
+        videoPlayer.pause()
+      }
+    }
+  }
+
+  // Bloquear reprodução se atingiu o limite e não está autenticado
+  const handlePlayAttempt = useCallback(() => {
+    if (hasReachedLimit && !isAuthenticated) {
+      console.log('[AUTH] Play blocked - user must authenticate')
+      const player = useFallbackPlayer ? videoRef.current : playerRef.current
+      if (player) {
+        const videoPlayer = player as any
+        videoPlayer.pause()
+        setShowAuthModal(true)
+      }
+      return false
+    }
+    return true
+  }, [hasReachedLimit, isAuthenticated, useFallbackPlayer])
+
   useEffect(() => {
     const currentPlayerRef = useFallbackPlayer ? videoRef : playerRef
     if (currentPlayerRef.current && !isLoading) {
@@ -109,6 +224,14 @@ export function WatchSection() {
       const player = currentPlayerRef.current as any
 
       const handlePlay = () => {
+        // Verificar se pode reproduzir
+        if (hasReachedLimit && !isAuthenticated) {
+          console.log("[AUTH] Play blocked - user must authenticate")
+          player.pause()
+          setShowAuthModal(true)
+          return
+        }
+        
         console.log("[v0] Player started playing")
         setError(null)
         pauseOtherPlayers(PLAYER_ID)
@@ -162,7 +285,7 @@ export function WatchSection() {
   // Removed custom keyboard shortcuts and auto-hide controls - using Mux Player's native controls
 
   return (
-    <section id="assistir" className="py-20 px-4 bg-background">
+    <section id="assistir" className={`py-20 px-4 bg-background transition-all duration-300 ${showAuthModal ? 'blur-sm' : ''}`}>
       <div className="container mx-auto max-w-6xl">
         <div className="text-center mb-12">
           <h2 className="text-4xl md:text-6xl font-serif font-bold mb-4 text-balance text-primary">Assistir Agora</h2>
@@ -172,6 +295,61 @@ export function WatchSection() {
         <div className="relative">
           {/* Hero Video Player */}
           <div className="relative aspect-video rounded-2xl overflow-hidden bg-gradient-to-br from-gray-900 via-black to-gray-900 shadow-2xl">
+              {/* Indicador de tempo */}
+              <TimeIndicator 
+                currentTime={currentTime}
+                timeLimit={TIME_LIMIT}
+                isAuthenticated={isAuthenticated}
+              />
+              
+              {/* Botão de teste temporário - remover em produção */}
+              {!isAuthenticated && (
+                <div className="absolute top-4 left-4 z-20">
+                  <Button 
+                    onClick={testTimeLimit}
+                    size="sm"
+                    variant="destructive"
+                    className="text-xs"
+                  >
+                    Testar Modal
+                  </Button>
+                </div>
+              )}
+
+              {/* Overlay de bloqueio após limite de tempo */}
+              {hasReachedLimit && !isAuthenticated && (
+                <div className="absolute inset-0 bg-black/90 backdrop-blur-sm z-30 flex items-center justify-center">
+                  <div className="text-center text-white p-8">
+                    <div className="mb-6">
+                      <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                      </div>
+                      <h3 className="text-2xl font-bold mb-2">Acesso Restrito</h3>
+                      <p className="text-gray-300 mb-6">
+                        Para continuar assistindo, você precisa se autenticar
+                      </p>
+                    </div>
+                    <div className="flex gap-4 justify-center">
+                      <Button 
+                        onClick={() => setShowAuthModal(true)}
+                        className="bg-primary hover:bg-primary/90"
+                      >
+                        Apoiar Agora
+                      </Button>
+                      <Button 
+                        onClick={() => setShowAuthModal(true)}
+                        variant="outline"
+                        className="border-white text-white hover:bg-white hover:text-black"
+                      >
+                        Já Apoiei
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               {isLoading ? (
               <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-900 via-black to-gray-800">
                 <div className="text-center">
@@ -391,6 +569,13 @@ export function WatchSection() {
           </div>
         </div>
       </div>
+
+      {/* Modal de Autenticação */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={handleAuthClose}
+        onSuccess={handleAuthSuccess}
+      />
     </section>
   )
 }

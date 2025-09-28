@@ -6,6 +6,7 @@ import { Playfair_Display } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
 import { PlayerProvider } from "@/contexts/player-context"
+import { AuthProvider } from "@/contexts/auth-context"
 import "./globals.css"
 
 const playfair = Playfair_Display({
@@ -41,13 +42,12 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} ${playfair.variable}`}>
-       
+        <AuthProvider>
           <PlayerProvider>
             <Suspense fallback={null}>{children}</Suspense>
-           
             <Analytics />
           </PlayerProvider>
-       
+        </AuthProvider>
       </body>
     </html>
   )
