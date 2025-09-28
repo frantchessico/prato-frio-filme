@@ -1,14 +1,15 @@
 "use client"
 
-import React, { useState } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useAuth } from '@/contexts/auth-context'
-import { Loader2, Phone, User, Lock, CheckCircle } from 'lucide-react'
+import type React from "react"
+import { useState } from "react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useAuth } from "@/contexts/auth-context"
+import { Loader2, Phone, User, Lock, CheckCircle, Eye, EyeOff } from "lucide-react"
 
 interface AuthModalProps {
   isOpen: boolean
@@ -19,22 +20,22 @@ interface AuthModalProps {
 export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
   const [isLogin, setIsLogin] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
-  
+  const [showPassword, setShowPassword] = useState(false)
+
   // Estados do formulário
-  const [phone, setPhone] = useState('')
-  const [password, setPassword] = useState('')
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
+  const [phone, setPhone] = useState("")
+  const [password, setPassword] = useState("")
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
 
   const { login, register } = useAuth()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    setError('')
+    setError("")
 
     try {
       const success = await login(phone, password)
@@ -45,10 +46,10 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
           onClose()
         }, 1500)
       } else {
-        setError('Telefone ou senha incorretos')
+        setError("Telefone ou senha incorretos")
       }
     } catch (error) {
-      setError('Erro ao fazer login')
+      setError("Erro ao fazer login")
     } finally {
       setIsLoading(false)
     }
@@ -57,13 +58,7 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    setError('')
-
-    if (password !== confirmPassword) {
-      setError('As senhas não coincidem')
-      setIsLoading(false)
-      return
-    }
+    setError("")
 
     try {
       const success = await register(phone, firstName, lastName, password)
@@ -74,23 +69,23 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
           onClose()
         }, 1500)
       } else {
-        setError('Erro ao criar conta. Telefone pode já estar em uso.')
+        setError("Erro ao criar conta. Telefone pode já estar em uso.")
       }
     } catch (error) {
-      setError('Erro ao criar conta')
+      setError("Erro ao criar conta")
     } finally {
       setIsLoading(false)
     }
   }
 
   const resetForm = () => {
-    setPhone('')
-    setPassword('')
-    setFirstName('')
-    setLastName('')
-    setConfirmPassword('')
-    setError('')
+    setPhone("")
+    setPassword("")
+    setFirstName("")
+    setLastName("")
+    setError("")
     setSuccess(false)
+    setShowPassword(false)
   }
 
   const handleClose = () => {
@@ -101,15 +96,16 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
   if (success) {
     return (
       <Dialog open={isOpen} onOpenChange={handleClose}>
-        <DialogContent className="sm:max-w-md">
-          <div className="flex flex-col items-center justify-center py-8">
-            <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
-            <h3 className="text-xl font-semibold text-center mb-2">
-              {isLogin ? 'Login realizado com sucesso!' : 'Conta criada com sucesso!'}
+        <DialogContent className="sm:max-w-md bg-card border border-border/50 shadow-2xl">
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="relative mb-6">
+              <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
+              <CheckCircle className="relative h-20 w-20 text-primary" />
+            </div>
+            <h3 className="text-2xl font-bold text-center mb-3 text-foreground">
+              {isLogin ? "Login realizado com sucesso!" : "Conta criada com sucesso!"}
             </h3>
-            <p className="text-muted-foreground text-center">
-              Agora você pode assistir ao filme completo!
-            </p>
+            <p className="text-muted-foreground text-center text-lg">Agora você pode assistir ao filme completo!</p>
           </div>
         </DialogContent>
       </Dialog>
@@ -118,78 +114,110 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md bg-white border-2 border-gray-200 shadow-2xl">
-        <DialogHeader>
-          <DialogTitle className="text-center text-2xl font-bold text-primary">
-            {isLogin ? 'Já Apoiei' : 'Apoiar Agora'}
+      <DialogContent className="sm:max-w-lg bg-card border border-border/50 shadow-2xl backdrop-blur-sm">
+        <DialogHeader className="space-y-4 pb-6">
+          <DialogTitle className="text-center text-3xl font-bold text-foreground">
+            {isLogin ? "Já Apoiei" : "Apoiar Agora"}
           </DialogTitle>
+          <div className="w-16 h-1 bg-primary mx-auto rounded-full" />
         </DialogHeader>
 
-        <Tabs value={isLogin ? 'login' : 'register'} onValueChange={(value) => setIsLogin(value === 'login')}>
-          <TabsList className="grid w-full grid-cols-2 bg-gray-100">
-            <TabsTrigger value="login" className="data-[state=active]:bg-white data-[state=active]:text-primary">Login</TabsTrigger>
-            <TabsTrigger value="register" className="data-[state=active]:bg-white data-[state=active]:text-primary">Registrar</TabsTrigger>
+        <Tabs
+          value={isLogin ? "login" : "register"}
+          onValueChange={(value) => setIsLogin(value === "login")}
+          className="space-y-6"
+        >
+          <TabsList className="grid w-full grid-cols-2 bg-muted/20 border border-border/30 p-1 rounded-xl backdrop-blur-sm h-14">
+            <TabsTrigger
+              value="login"
+              className="h-12 rounded-lg font-semibold text-base transition-all duration-300 data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-muted/30"
+            >
+              Login
+            </TabsTrigger>
+            <TabsTrigger
+              value="register"
+              className="h-12 rounded-lg font-semibold text-base transition-all duration-300 data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-muted/30"
+            >
+              Registrar
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="login">
-            <Card className="bg-white border-0 shadow-none">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2 text-gray-800">
-                  <User className="h-5 w-5" />
+          <TabsContent value="login" className="space-y-0">
+            <Card className="bg-card/50 border border-border/50 shadow-lg backdrop-blur-sm">
+              <CardHeader className="pb-6">
+                <CardTitle className="flex items-center gap-3 text-foreground font-bold text-xl">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <User className="h-5 w-5 text-primary" />
+                  </div>
                   Fazer Login
                 </CardTitle>
-                <CardDescription className="text-gray-600">
-                  Entre com seu telefone e senha
+                <CardDescription className="text-muted-foreground text-base">
+                  Entre com seu telefone e senha para continuar
                 </CardDescription>
               </CardHeader>
-              <CardContent className="pt-0">
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="login-phone">Telefone</Label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <CardContent className="space-y-6">
+                <form onSubmit={handleLogin} className="space-y-6">
+                  <div className="space-y-3">
+                    <Label htmlFor="login-phone" className="text-foreground font-semibold text-sm">
+                      Telefone
+                    </Label>
+                    <div className="relative group">
+                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                       <Input
                         id="login-phone"
                         type="tel"
                         placeholder="+258 84 123 4567"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
-                        className="pl-10"
+                        className="pl-12 h-12 bg-input border-border/50 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-foreground placeholder:text-muted-foreground rounded-lg"
                         required
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="login-password">Senha</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <div className="space-y-3">
+                    <Label htmlFor="login-password" className="text-foreground font-semibold text-sm">
+                      Senha
+                    </Label>
+                    <div className="relative group">
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                       <Input
                         id="login-password"
-                        type="password"
+                        type={showPassword ? "text" : "password"}
                         placeholder="Sua senha"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="pl-10"
+                        className="pl-12 pr-12 h-12 bg-input border-border/50 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-foreground placeholder:text-muted-foreground rounded-lg"
                         required
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      </button>
                     </div>
                   </div>
 
                   {error && (
-                    <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+                    <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 p-4 rounded-lg font-medium">
                       {error}
                     </div>
                   )}
 
-                  <Button type="submit" className="w-full" disabled={isLoading}>
+                  <Button
+                    type="submit"
+                    className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 h-12 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-red-600/25 hover:scale-[1.02] text-base rounded-lg"
+                    disabled={isLoading}
+                  >
                     {isLoading ? (
                       <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                         Entrando...
                       </>
                     ) : (
-                      'Entrar'
+                      "Entrar"
                     )}
                   </Button>
                 </form>
@@ -197,108 +225,116 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
             </Card>
           </TabsContent>
 
-          <TabsContent value="register">
-            <Card className="bg-white border-0 shadow-none">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2 text-gray-800">
-                  <User className="h-5 w-5" />
+          <TabsContent value="register" className="space-y-0">
+            <Card className="bg-card/50 border border-border/50 shadow-lg backdrop-blur-sm">
+              <CardHeader className="pb-6">
+                <CardTitle className="flex items-center gap-3 text-foreground font-bold text-xl">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <User className="h-5 w-5 text-primary" />
+                  </div>
                   Criar Conta
                 </CardTitle>
-                <CardDescription className="text-gray-600">
+                <CardDescription className="text-muted-foreground text-base">
                   Preencha os dados para apoiar o projeto
                 </CardDescription>
               </CardHeader>
-              <CardContent className="pt-0">
-                <form onSubmit={handleRegister} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="register-phone">Telefone</Label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <CardContent className="space-y-6">
+                <form onSubmit={handleRegister} className="space-y-6">
+                  <div className="space-y-3">
+                    <Label htmlFor="register-phone" className="text-foreground font-semibold text-sm">
+                      Telefone
+                    </Label>
+                    <div className="relative group">
+                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                       <Input
                         id="register-phone"
                         type="tel"
                         placeholder="+258 84 123 4567"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
-                        className="pl-10"
+                        className="pl-12 h-12 bg-input border-border/50 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-foreground placeholder:text-muted-foreground rounded-lg"
                         required
                       />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="register-firstName">Primeiro Nome</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                      <Label htmlFor="register-firstName" className="text-foreground font-semibold text-sm">
+                        Primeiro Nome
+                      </Label>
                       <Input
                         id="register-firstName"
                         type="text"
                         placeholder="João"
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
+                        className="h-12 bg-input border-border/50 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-foreground placeholder:text-muted-foreground rounded-lg"
                         required
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="register-lastName">Último Nome</Label>
+                    <div className="space-y-3">
+                      <Label htmlFor="register-lastName" className="text-foreground font-semibold text-sm">
+                        Último Nome
+                      </Label>
                       <Input
                         id="register-lastName"
                         type="text"
                         placeholder="Silva"
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
+                        className="h-12 bg-input border-border/50 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-foreground placeholder:text-muted-foreground rounded-lg"
                         required
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="register-password">Senha</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <div className="space-y-3">
+                    <Label htmlFor="register-password" className="text-foreground font-semibold text-sm">
+                      Senha
+                    </Label>
+                    <div className="relative group">
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                       <Input
                         id="register-password"
-                        type="password"
+                        type={showPassword ? "text" : "password"}
                         placeholder="Mínimo 6 caracteres"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="pl-10"
+                        className="pl-12 pr-12 h-12 bg-input border-border/50 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-foreground placeholder:text-muted-foreground rounded-lg"
                         required
                         minLength={6}
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      </button>
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="register-confirmPassword">Confirmar Senha</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="register-confirmPassword"
-                        type="password"
-                        placeholder="Confirme sua senha"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="pl-10"
-                        required
-                      />
-                    </div>
-                  </div>
 
                   {error && (
-                    <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+                    <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 p-4 rounded-lg font-medium">
                       {error}
                     </div>
                   )}
 
-                  <Button type="submit" className="w-full" disabled={isLoading}>
+                  <Button
+                    type="submit"
+                    className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 h-12 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-red-600/25 hover:scale-[1.02] text-base rounded-lg"
+                    disabled={isLoading}
+                  >
                     {isLoading ? (
                       <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                         Criando conta...
                       </>
                     ) : (
-                      'Criar Conta'
+                      "Criar Conta"
                     )}
                   </Button>
                 </form>
