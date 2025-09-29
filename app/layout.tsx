@@ -7,6 +7,7 @@ import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
 import { PlayerProvider } from "@/contexts/player-context"
 import { AuthProvider } from "@/contexts/auth-context"
+import { AccessibilityProvider } from "@/components/accessibility-provider"
 import { Toaster } from "sonner"
 import "./globals.css"
 
@@ -101,28 +102,30 @@ export default function RootLayout({
       </head>
       <body className={`font-sans antialiased ${GeistSans.variable} ${GeistMono.variable} ${playfair.variable}`}>
         <div id="root" className="min-h-screen flex flex-col">
-          <AuthProvider>
-            <PlayerProvider>
-              <Suspense fallback={
-                <div className="flex items-center justify-center min-h-screen" role="status" aria-label="Carregando">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                </div>
-              }>
-                {children}
-              </Suspense>
-              <Analytics />
-              <Toaster 
-                position="top-right"
-                expand={true}
-                richColors={true}
-                closeButton={true}
-                toastOptions={{
-                  duration: 4000,
-                  className: 'toast',
-                }}
-              />
-            </PlayerProvider>
-          </AuthProvider>
+          <AccessibilityProvider>
+            <AuthProvider>
+              <PlayerProvider>
+                <Suspense fallback={
+                  <div className="flex items-center justify-center min-h-screen" role="status" aria-label="Carregando">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+                }>
+                  {children}
+                </Suspense>
+                <Analytics />
+                <Toaster 
+                  position="top-right"
+                  expand={true}
+                  richColors={true}
+                  closeButton={true}
+                  toastOptions={{
+                    duration: 4000,
+                    className: 'toast',
+                  }}
+                />
+              </PlayerProvider>
+            </AuthProvider>
+          </AccessibilityProvider>
         </div>
         <div id="portal-root" />
       </body>
