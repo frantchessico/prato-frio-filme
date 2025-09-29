@@ -17,20 +17,68 @@ const playfair = Playfair_Display({
 })
 
 export const metadata: Metadata = {
-  title: "Prato Frio - Filme",
-  description: "Capturando Historias em Movimento",
-  generator: "SavanaPoint",
+  title: {
+    default: "Prato Frio - Filme Moçambicano",
+    template: "%s | Prato Frio"
+  },
+  description: "Assista ao filme 'Prato Frio', uma produção moçambicana que captura histórias em movimento. Apoie o cinema nacional e desfrute de uma experiência cinematográfica única.",
+  keywords: ["filme moçambicano", "cinema moçambique", "prato frio", "filme", "cinema nacional", "produção moçambicana"],
+  authors: [{ name: "SavanaPoint" }],
+  creator: "SavanaPoint",
+  publisher: "SavanaPoint",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  metadataBase: new URL('https://pratofrio.com'),
+  alternates: {
+    canonical: '/',
+    languages: {
+      'pt-BR': '/',
+    },
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'pt_BR',
+    url: 'https://pratofrio.com',
+    title: 'Prato Frio - Filme Moçambicano',
+    description: 'Assista ao filme "Prato Frio", uma produção moçambicana que captura histórias em movimento.',
+    siteName: 'Prato Frio',
+    images: [
+      {
+        url: '/og-image.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'Prato Frio - Filme Moçambicano',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Prato Frio - Filme Moçambicano',
+    description: 'Assista ao filme "Prato Frio", uma produção moçambicana que captura histórias em movimento.',
+    images: ['/twitter-image.jpg'],
+    creator: '@savanapoint',
+  },
   robots: {
-    index: false,
-    follow: false,
-    noarchive: true,
-    nosnippet: true,
-    noimageindex: true,
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  verification: {
+    google: 'your-google-verification-code',
   },
   other: {
     "X-Frame-Options": "DENY",
     "X-Content-Type-Options": "nosniff",
-    "Referrer-Policy": "no-referrer",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=(), interest-cohort=()",
   },
 }
@@ -41,20 +89,42 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="pt-BR">
-      <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} ${playfair.variable}`}>
-        <AuthProvider>
-          <PlayerProvider>
-            <Suspense fallback={null}>{children}</Suspense>
-            <Analytics />
-            <Toaster 
-              position="top-right"
-              expand={true}
-              richColors={true}
-              closeButton={true}
-            />
-          </PlayerProvider>
-        </AuthProvider>
+    <html lang="pt-BR" className="scroll-smooth">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+        <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+        <meta name="theme-color" content="#d4312c" />
+        <meta name="color-scheme" content="light dark" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+      </head>
+      <body className={`font-sans antialiased ${GeistSans.variable} ${GeistMono.variable} ${playfair.variable}`}>
+        <div id="root" className="min-h-screen flex flex-col">
+          <AuthProvider>
+            <PlayerProvider>
+              <Suspense fallback={
+                <div className="flex items-center justify-center min-h-screen" role="status" aria-label="Carregando">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              }>
+                {children}
+              </Suspense>
+              <Analytics />
+              <Toaster 
+                position="top-right"
+                expand={true}
+                richColors={true}
+                closeButton={true}
+                toastOptions={{
+                  duration: 4000,
+                  className: 'toast',
+                }}
+              />
+            </PlayerProvider>
+          </AuthProvider>
+        </div>
+        <div id="portal-root" />
       </body>
     </html>
   )

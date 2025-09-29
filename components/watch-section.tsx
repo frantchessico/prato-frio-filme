@@ -10,6 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { usePlayer } from "@/contexts/player-context"
 import { useAuth } from "@/contexts/auth-context"
 import { AuthModal } from "@/components/auth-modal"
+import { DonationModal } from "@/components/donation-modal"
 import { TimeIndicator } from "@/components/time-indicator"
 
 
@@ -54,6 +55,7 @@ export function WatchSection() {
   const [selectedQuality, setSelectedQuality] = useState(QUALITY_OPTIONS[0])
   const [isLoading, setIsLoading] = useState(true)
   const [showAuthModal, setShowAuthModal] = useState(false)
+  const [showDonationModal, setShowDonationModal] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [hasReachedLimit, setHasReachedLimit] = useState(false)
   const [useFallbackPlayer, setUseFallbackPlayer] = useState(false)
@@ -76,16 +78,24 @@ export function WatchSection() {
   // BLOQUEIO DEFINITIVO: Pausar vídeo se atingiu limite e não tem acesso
   useEffect(() => {
     if (hasReachedLimit) {
-      const shouldBlock = !isAuthenticated || 
-        (isAuthenticated && donationStatusChecked && !hasDonated)
-      
-      if (shouldBlock) {
-        console.log('[AUTH] DEFINITIVE BLOCK - Pausing video')
+      if (!isAuthenticated) {
+        console.log('[AUTH] DEFINITIVE BLOCK - User not authenticated, pausing video')
         const player = useFallbackPlayer ? videoRef.current : playerRef.current
         if (player) {
           const videoPlayer = player as any
           videoPlayer.pause()
         }
+      } else if (isAuthenticated && donationStatusChecked && !hasDonated) {
+        console.log('[AUTH] DEFINITIVE BLOCK - User authenticated but no donation, showing donation modal')
+        const player = useFallbackPlayer ? videoRef.current : playerRef.current
+        if (player) {
+          const videoPlayer = player as any
+          videoPlayer.pause()
+        }
+        setShowDonationModal(true)
+      } else if (isAuthenticated && !donationStatusChecked) {
+        console.log('[AUTH] DEFINITIVE WAIT - User authenticated, checking donation status...')
+        // Usuário autenticado mas ainda verificando - não bloquear ainda
       }
     }
   }, [hasReachedLimit, isAuthenticated, hasDonated, donationStatusChecked, useFallbackPlayer])
@@ -175,16 +185,20 @@ export function WatchSection() {
           console.log('[AUTH] Time limit reached!')
           setHasReachedLimit(true)
           
-          // BLOQUEAR SEMPRE se atingiu o limite e:
-          // 1. Não está autenticado OU
-          // 2. Está autenticado mas não doou (após verificação)
-          const shouldBlock = !isAuthenticated || 
-            (isAuthenticated && donationStatusChecked && !hasDonated)
-          
-          if (shouldBlock) {
-            console.log('[AUTH] BLOCKING VIDEO - User must authenticate and donate')
+          // BLOQUEAR se atingiu o limite e:
+          // 1. Não está autenticado (mostrar modal de auth)
+          // 2. Está autenticado mas verificou que não doou (não mostrar modal, só pausar)
+          if (!isAuthenticated) {
+            console.log('[AUTH] BLOCKING VIDEO - User not authenticated, showing auth modal')
             videoPlayer.pause()
             setShowAuthModal(true)
+          } else if (isAuthenticated && donationStatusChecked && !hasDonated) {
+            console.log('[AUTH] BLOCKING VIDEO - User authenticated but no donation, showing donation modal')
+            videoPlayer.pause()
+            setShowDonationModal(true)
+          } else if (isAuthenticated && !donationStatusChecked) {
+            console.log('[AUTH] WAITING - User authenticated, checking donation status...')
+            // Usuário autenticado mas ainda verificando doação - não bloquear ainda
           } else {
             console.log('[AUTH] ALLOWING VIDEO - User is authenticated and donated')
           }
@@ -192,12 +206,16 @@ export function WatchSection() {
         
         // BLOQUEIO CONTÍNUO: Se já atingiu limite e não tem acesso, pausar sempre
         if (hasReachedLimit) {
-          const shouldBlock = !isAuthenticated || 
-            (isAuthenticated && donationStatusChecked && !hasDonated)
-          
-          if (shouldBlock && !videoPlayer.paused) {
-            console.log('[AUTH] CONTINUOUS BLOCK - Pausing video')
+          if (!isAuthenticated && !videoPlayer.paused) {
+            console.log('[AUTH] CONTINUOUS BLOCK - User not authenticated, pausing video')
             videoPlayer.pause()
+          } else if (isAuthenticated && donationStatusChecked && !hasDonated && !videoPlayer.paused) {
+            console.log('[AUTH] CONTINUOUS BLOCK - User authenticated but no donation, showing donation modal')
+            videoPlayer.pause()
+            setShowDonationModal(true)
+          } else if (isAuthenticated && !donationStatusChecked) {
+            console.log('[AUTH] CONTINUOUS WAIT - User authenticated, checking donation status...')
+            // Usuário autenticado mas ainda verificando - não bloquear ainda
           }
         }
       }
@@ -259,26 +277,55 @@ export function WatchSection() {
     }
   }
 
-  // Bloquear reprodução se atingiu o limite e não está autenticado OU não doou
-  const handlePlayAttempt = useCallback(() => {
-    // BLOQUEAR SEMPRE se atingiu o limite e:
-    // 1. Não está autenticado OU
-    // 2. Está autenticado mas não doou (após verificação)
-    const shouldBlock = hasReachedLimit && (
-      !isAuthenticated || 
-      (isAuthenticated && donationStatusChecked && !hasDonated)
-    )
-    
-    if (shouldBlock) {
-      console.log('[AUTH] Play blocked - user must authenticate and donate')
-      console.log('[AUTH] isAuthenticated:', isAuthenticated, 'hasDonated:', hasDonated, 'donationStatusChecked:', donationStatusChecked)
+  // Funções para o modal de doação
+  const handleDonationSuccess = () => {
+    setShowDonationModal(false)
+    setHasReachedLimit(false)
+    // Permitir que o usuário continue assistindo
+    const player = useFallbackPlayer ? videoRef.current : playerRef.current
+    if (player) {
+      const videoPlayer = player as any
+      videoPlayer.play()
+    }
+  }
+
+  const handleDonationClose = () => {
+    setShowDonationModal(false)
+    // Se não doou, pausar o vídeo
+    if (isAuthenticated && !hasDonated) {
       const player = useFallbackPlayer ? videoRef.current : playerRef.current
       if (player) {
         const videoPlayer = player as any
         videoPlayer.pause()
-        setShowAuthModal(true)
       }
-      return false
+    }
+  }
+
+  // Bloquear reprodução se atingiu o limite e não está autenticado OU não doou
+  const handlePlayAttempt = useCallback(() => {
+    if (hasReachedLimit) {
+      if (!isAuthenticated) {
+        console.log('[AUTH] Play blocked - user not authenticated, showing auth modal')
+        const player = useFallbackPlayer ? videoRef.current : playerRef.current
+        if (player) {
+          const videoPlayer = player as any
+          videoPlayer.pause()
+          setShowAuthModal(true)
+        }
+        return false
+      } else if (isAuthenticated && donationStatusChecked && !hasDonated) {
+        console.log('[AUTH] Play blocked - user authenticated but no donation, showing donation modal')
+        const player = useFallbackPlayer ? videoRef.current : playerRef.current
+        if (player) {
+          const videoPlayer = player as any
+          videoPlayer.pause()
+        }
+        setShowDonationModal(true)
+        return false
+      } else if (isAuthenticated && !donationStatusChecked) {
+        console.log('[AUTH] Play waiting - user authenticated, checking donation status...')
+        // Usuário autenticado mas ainda verificando - permitir por enquanto
+      }
     }
     return true
   }, [hasReachedLimit, isAuthenticated, hasDonated, donationStatusChecked, useFallbackPlayer])
@@ -291,20 +338,21 @@ export function WatchSection() {
       const player = currentPlayerRef.current as any
 
       const handlePlay = () => {
-        // BLOQUEAR SEMPRE se atingiu o limite e:
-        // 1. Não está autenticado OU
-        // 2. Está autenticado mas não doou (após verificação)
-        const shouldBlock = hasReachedLimit && (
-          !isAuthenticated || 
-          (isAuthenticated && donationStatusChecked && !hasDonated)
-        )
-        
-        if (shouldBlock) {
-          console.log("[AUTH] Play blocked - user must authenticate and donate")
-          console.log("[AUTH] isAuthenticated:", isAuthenticated, "hasDonated:", hasDonated, "donationStatusChecked:", donationStatusChecked)
-          player.pause()
-          setShowAuthModal(true)
-          return
+        if (hasReachedLimit) {
+          if (!isAuthenticated) {
+            console.log("[AUTH] Play blocked - user not authenticated, showing auth modal")
+            player.pause()
+            setShowAuthModal(true)
+            return
+          } else if (isAuthenticated && donationStatusChecked && !hasDonated) {
+            console.log("[AUTH] Play blocked - user authenticated but no donation, showing donation modal")
+            player.pause()
+            setShowDonationModal(true)
+            return
+          } else if (isAuthenticated && !donationStatusChecked) {
+            console.log("[AUTH] Play waiting - user authenticated, checking donation status...")
+            // Usuário autenticado mas ainda verificando - permitir por enquanto
+          }
         }
         
         console.log("[v0] Player started playing")
@@ -360,16 +408,29 @@ export function WatchSection() {
   // Removed custom keyboard shortcuts and auto-hide controls - using Mux Player's native controls
 
   return (
-    <section id="assistir" className={`py-20 px-4 bg-background transition-all duration-300 ${showAuthModal ? 'blur-sm' : ''}`}>
+    <section 
+      id="assistir" 
+      className={`py-16 sm:py-20 px-4 bg-background transition-all duration-300 ${showAuthModal || showDonationModal ? 'blur-sm' : ''}`}
+      aria-labelledby="assistir-title"
+    >
       <div className="container mx-auto max-w-6xl">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl md:text-6xl font-serif font-bold mb-4 text-balance text-primary">Assistir Agora</h2>
-          <div className="w-24 h-1 bg-primary mx-auto rounded-full" />
+        <div className="text-center mb-8 sm:mb-12">
+          <h2 
+            id="assistir-title"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-serif font-bold mb-4 text-balance text-primary"
+          >
+            Assistir Agora
+          </h2>
+          <div className="w-16 sm:w-24 h-1 bg-primary mx-auto rounded-full" aria-hidden="true" />
         </div>
 
         <div className="relative">
           {/* Hero Video Player */}
-          <div className="relative aspect-video rounded-2xl overflow-hidden bg-gradient-to-br from-gray-900 via-black to-gray-900 shadow-2xl">
+          <div 
+            className="relative aspect-video rounded-2xl overflow-hidden bg-gradient-to-br from-gray-900 via-black to-gray-900 shadow-2xl"
+            role="region"
+            aria-label="Player de vídeo principal"
+          >
               {/* Indicador de tempo */}
         <TimeIndicator
           currentTime={currentTime}
@@ -403,43 +464,52 @@ export function WatchSection() {
                 !isAuthenticated || 
                 (isAuthenticated && donationStatusChecked && !hasDonated)
               ) && (
-                <div className="absolute inset-0 bg-black/90 backdrop-blur-sm z-30 flex items-center justify-center">
-                  <div className="text-center text-white p-8">
+                <div 
+                  className="absolute inset-0 bg-black/90 backdrop-blur-sm z-30 flex items-center justify-center"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="blocked-title"
+                  aria-describedby="blocked-description"
+                >
+                  <div className="text-center text-white p-6 sm:p-8 max-w-md mx-4">
                     <div className="mb-6">
-                      <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4" aria-hidden="true">
+                        <svg className="w-6 h-6 sm:w-8 sm:h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                         </svg>
                       </div>
-                      <h3 className="text-2xl font-bold mb-2">Acesso Restrito</h3>
-                      <p className="text-gray-300 mb-6">
+                      <h3 id="blocked-title" className="text-xl sm:text-2xl font-bold mb-2">Acesso Restrito</h3>
+                      <p id="blocked-description" className="text-gray-300 mb-6 text-sm sm:text-base">
                         {!isAuthenticated 
                           ? "Para continuar assistindo, você precisa se autenticar e fazer uma doação"
                           : "Para continuar assistindo, você precisa fazer uma doação para apoiar o projeto"
                         }
                       </p>
                     </div>
-                    <div className="flex gap-4 justify-center">
+                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
                       {!isAuthenticated ? (
                         <>
                           <Button 
                             onClick={() => setShowAuthModal(true)}
-                            className="bg-primary hover:bg-primary/90"
+                            className="bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-black"
+                            aria-label="Apoiar o projeto agora"
                           >
                             Apoiar Agora
                           </Button>
                           <Button 
                             onClick={() => setShowAuthModal(true)}
                             variant="outline"
-                            className="border-white text-white hover:bg-white hover:text-black"
+                            className="border-white text-white hover:bg-white hover:text-black focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-black"
+                            aria-label="Já sou apoiador"
                           >
                             Já Apoiei
                           </Button>
                         </>
                       ) : (
                         <Button 
-                          onClick={() => setShowAuthModal(true)}
-                          className="bg-primary hover:bg-primary/90"
+                          onClick={() => setShowDonationModal(true)}
+                          className="bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-black"
+                          aria-label="Fazer doação para continuar assistindo"
                         >
                           Fazer Doação
                         </Button>
@@ -675,6 +745,13 @@ export function WatchSection() {
         isOpen={showAuthModal}
         onClose={handleAuthClose}
         onSuccess={handleAuthSuccess}
+      />
+
+      {/* Modal de Doação */}
+      <DonationModal
+        isOpen={showDonationModal}
+        onClose={handleDonationClose}
+        onSuccess={handleDonationSuccess}
       />
     </section>
   )
