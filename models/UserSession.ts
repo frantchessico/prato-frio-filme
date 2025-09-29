@@ -44,8 +44,7 @@ const UserSessionSchema = new Schema<IUserSession>({
   },
   expiresAt: {
     type: Date,
-    required: true,
-    index: { expireAfterSeconds: 0 } // TTL index
+    required: true
   },
   lastActivity: {
     type: Date,
@@ -59,6 +58,6 @@ const UserSessionSchema = new Schema<IUserSession>({
 UserSessionSchema.index({ userId: 1 })
 UserSessionSchema.index({ token: 1 })
 UserSessionSchema.index({ isActive: 1 })
-UserSessionSchema.index({ expiresAt: 1 })
+UserSessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 }) // TTL index
 
 export const UserSession = mongoose.models.UserSession || mongoose.model<IUserSession>('UserSession', UserSessionSchema)

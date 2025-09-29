@@ -19,8 +19,7 @@ const UserSchema = new Schema<IUser>({
     type: String,
     required: true,
     unique: true,
-    trim: true,
-    index: true
+    trim: true
   },
   firstName: {
     type: String,

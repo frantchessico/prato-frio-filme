@@ -5,6 +5,9 @@ import { User } from '@/models/User'
 import { Donation } from '@/models/Donation'
 import { UserSession } from '@/models/UserSession'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     await dbConnect()
