@@ -7,6 +7,7 @@ import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
 import { PlayerProvider } from "@/contexts/player-context"
 import { AuthProvider } from "@/contexts/auth-context"
+import { Toaster } from "sonner"
 import "./globals.css"
 
 const playfair = Playfair_Display({
@@ -46,6 +47,12 @@ export default function RootLayout({
           <PlayerProvider>
             <Suspense fallback={null}>{children}</Suspense>
             <Analytics />
+            <Toaster 
+              position="top-right"
+              expand={true}
+              richColors={true}
+              closeButton={true}
+            />
           </PlayerProvider>
         </AuthProvider>
       </body>

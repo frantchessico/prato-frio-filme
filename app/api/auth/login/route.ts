@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { authenticateUser, generateToken } from '@/lib/auth'
+import { authenticateUser, generateToken, createUserSession, logAnalytics } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,6 +15,15 @@ export async function POST(request: NextRequest) {
 
     const user = await authenticateUser(phone, password)
     const token = generateToken(user)
+    
+    // Criar sessão
+    const clientIP = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
+    const userAgent = request.headers.get('user-agent') || 'unknown'
+    
+    await createUserSession(user.id, token, 'web', clientIP, userAgent)
+    
+    // Log de analytics
+    await logAnalytics(user.id, 'user_login_completed', 'auth', { phone }, clientIP, userAgent)
 
     return NextResponse.json({
       success: true,
@@ -23,7 +32,8 @@ export async function POST(request: NextRequest) {
         id: user.id,
         phone: user.phone,
         firstName: user.firstName,
-        lastName: user.lastName
+        lastName: user.lastName,
+        hasDonated: user.hasDonated
       }
     })
 

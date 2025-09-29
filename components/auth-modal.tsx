@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useAuth } from "@/contexts/auth-context"
+import { DonationModal } from "@/components/donation-modal"
 import { Loader2, Phone, User, Lock, CheckCircle, Eye, EyeOff } from "lucide-react"
 
 interface AuthModalProps {
@@ -23,6 +24,7 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [showDonationModal, setShowDonationModal] = useState(false)
 
   // Estados do formulário
   const [phone, setPhone] = useState("")
@@ -30,7 +32,7 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
 
-  const { login, register } = useAuth()
+  const { login, register, hasDonated } = useAuth()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -40,11 +42,16 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
     try {
       const success = await login(phone, password)
       if (success) {
-        setSuccess(true)
-        setTimeout(() => {
-          onSuccess()
-          onClose()
-        }, 1500)
+        if (hasDonated) {
+          setSuccess(true)
+          setTimeout(() => {
+            onSuccess()
+            onClose()
+          }, 1500)
+        } else {
+          // Usuário logado mas não doou - mostrar modal de doação
+          setShowDonationModal(true)
+        }
       } else {
         setError("Telefone ou senha incorretos")
       }
@@ -63,11 +70,7 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
     try {
       const success = await register(phone, firstName, lastName, password)
       if (success) {
-        setSuccess(true)
-        setTimeout(() => {
-          onSuccess()
-          onClose()
-        }, 1500)
+        setShowDonationModal(true)
       } else {
         setError("Erro ao criar conta. Telefone pode já estar em uso.")
       }
@@ -86,6 +89,7 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
     setError("")
     setSuccess(false)
     setShowPassword(false)
+    setShowDonationModal(false)
   }
 
   const handleClose = () => {
@@ -343,6 +347,20 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
           </TabsContent>
         </Tabs>
       </DialogContent>
+
+      {/* Modal de Doação */}
+      <DonationModal
+        isOpen={showDonationModal}
+        onClose={() => setShowDonationModal(false)}
+        onSuccess={() => {
+          setShowDonationModal(false)
+          setSuccess(true)
+          setTimeout(() => {
+            onSuccess()
+            onClose()
+          }, 1500)
+        }}
+      />
     </Dialog>
   )
 }

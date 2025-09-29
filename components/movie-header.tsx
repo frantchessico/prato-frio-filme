@@ -3,10 +3,12 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Menu } from "lucide-react"
+import { useAuth } from "@/contexts/auth-context"
+import { Menu, LogOut, User } from "lucide-react"
 
 export function MovieHeader() {
   const [isOpen, setIsOpen] = useState(false)
+  const { isAuthenticated, user, logout } = useAuth()
 
   const navItems = [
     { href: "#inicio", label: "Início" },
@@ -37,6 +39,27 @@ export function MovieHeader() {
           ))}
         </nav>
 
+        {/* User Menu - Desktop */}
+        {isAuthenticated && user ? (
+          <div className="hidden md:flex items-center gap-3">
+            <div className="flex items-center gap-2 text-white bg-black/40 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/20">
+              <User className="h-4 w-4" />
+              <span className="text-sm font-medium">
+                {user.firstName} {user.lastName}
+              </span>
+            </div>
+            <Button
+              onClick={logout}
+              size="sm"
+              variant="ghost"
+              className="text-white hover:bg-white/20 border border-white/20"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Sair
+            </Button>
+          </div>
+        ) : null}
+
         {/* Mobile Navigation */}
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
           <SheetTrigger asChild className="md:hidden">
@@ -56,6 +79,29 @@ export function MovieHeader() {
                   {item.label}
                 </a>
               ))}
+              
+              {/* User Menu - Mobile */}
+              {isAuthenticated && user && (
+                <div className="pt-4 border-t border-gray-700">
+                  <div className="flex items-center gap-3 mb-4 p-3 bg-black/40 backdrop-blur-sm rounded-lg border border-white/20">
+                    <User className="h-5 w-5 text-white" />
+                    <span className="text-white font-medium">
+                      {user.firstName} {user.lastName}
+                    </span>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      logout()
+                      setIsOpen(false)
+                    }}
+                    variant="ghost"
+                    className="w-full justify-start text-lg font-medium text-gray-300 hover:text-white hover:bg-white/10"
+                  >
+                    <LogOut className="h-5 w-5 mr-3" />
+                    Sair da Conta
+                  </Button>
+                </div>
+              )}
             </nav>
           </SheetContent>
         </Sheet>

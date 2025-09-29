@@ -8,16 +8,19 @@ interface TimeIndicatorProps {
   currentTime: number
   timeLimit: number
   isAuthenticated: boolean
+  hasDonated: boolean
+  donationStatusChecked?: boolean
 }
 
-export function TimeIndicator({ currentTime, timeLimit, isAuthenticated }: TimeIndicatorProps) {
+export function TimeIndicator({ currentTime, timeLimit, isAuthenticated, hasDonated, donationStatusChecked }: TimeIndicatorProps) {
   const progress = Math.min((currentTime / timeLimit) * 100, 100)
   const remainingTime = Math.max(timeLimit - currentTime, 0)
   const minutes = Math.floor(remainingTime / 60)
   const seconds = Math.floor(remainingTime % 60)
 
-  if (isAuthenticated) {
-    return null // Não mostrar para usuários autenticados
+  // Só não mostrar se está autenticado E doou (após verificação)
+  if (isAuthenticated && donationStatusChecked && hasDonated) {
+    return null
   }
 
   return (
@@ -39,7 +42,7 @@ export function TimeIndicator({ currentTime, timeLimit, isAuthenticated }: TimeI
       {progress >= 100 && (
         <div className="flex items-center gap-1 mt-2 text-red-400 text-xs">
           <Lock className="h-3 w-3" />
-          <span>Autenticação necessária</span>
+          <span>Doação necessária para continuar</span>
         </div>
       )}
     </div>

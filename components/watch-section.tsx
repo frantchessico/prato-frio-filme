@@ -43,7 +43,11 @@ const QUALITY_OPTIONS = [
 ]
 
 export function WatchSection() {
-  const { isAuthenticated, user } = useAuth()
+  const { isAuthenticated, hasDonated, checkDonationStatus, checkingDonation, donationStatusChecked } = useAuth()
+  
+  // Debug logs
+  console.log('[WATCH] Auth status:', { isAuthenticated, hasDonated, checkingDonation, donationStatusChecked })
+  
   const playerRef = useRef<HTMLElement | HTMLVideoElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const [selectedLanguage, setSelectedLanguage] = useState(LANGUAGE_OPTIONS[0])
@@ -52,7 +56,39 @@ export function WatchSection() {
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [hasReachedLimit, setHasReachedLimit] = useState(false)
+  const [useFallbackPlayer, setUseFallbackPlayer] = useState(false)
   const TIME_LIMIT = 1 * 60 // 12 minutos em segundos
+  
+  // Verificar status de doação periodicamente para usuários autenticados
+  useEffect(() => {
+    if (isAuthenticated && !checkingDonation) {
+      // Verificar imediatamente ao fazer login
+      checkDonationStatus()
+      
+      const interval = setInterval(() => {
+        checkDonationStatus()
+      }, 30000) // Verificar a cada 30 segundos
+
+      return () => clearInterval(interval)
+    }
+  }, [isAuthenticated, checkDonationStatus, checkingDonation])
+
+  // BLOQUEIO DEFINITIVO: Pausar vídeo se atingiu limite e não tem acesso
+  useEffect(() => {
+    if (hasReachedLimit) {
+      const shouldBlock = !isAuthenticated || 
+        (isAuthenticated && donationStatusChecked && !hasDonated)
+      
+      if (shouldBlock) {
+        console.log('[AUTH] DEFINITIVE BLOCK - Pausing video')
+        const player = useFallbackPlayer ? videoRef.current : playerRef.current
+        if (player) {
+          const videoPlayer = player as any
+          videoPlayer.pause()
+        }
+      }
+    }
+  }, [hasReachedLimit, isAuthenticated, hasDonated, donationStatusChecked, useFallbackPlayer])
   
   // Função para testar o limite (apenas para desenvolvimento)
   const testTimeLimit = () => {
@@ -66,7 +102,6 @@ export function WatchSection() {
     }
   }
   const [error, setError] = useState<string | null>(null)
-  const [useFallbackPlayer, setUseFallbackPlayer] = useState(false)
 
   const { registerPlayer, unregisterPlayer, pauseOtherPlayers } = usePlayer()
   const PLAYER_ID = "main-movie"
@@ -132,15 +167,38 @@ export function WatchSection() {
       if (player) {
         const videoPlayer = player as any
         const time = videoPlayer.currentTime || 0
-        console.log(`[AUTH] Current time: ${time}s, Limit: ${TIME_LIMIT}s, Authenticated: ${isAuthenticated}`)
+        console.log(`[AUTH] Current time: ${time}s, Limit: ${TIME_LIMIT}s, Authenticated: ${isAuthenticated}, HasDonated: ${hasDonated}`)
         setCurrentTime(time)
         
         // Verificar se atingiu o limite de 12 minutos
-        if (time >= TIME_LIMIT && !isAuthenticated && !hasReachedLimit) {
-          console.log('[AUTH] Time limit reached! Pausing video and showing modal')
+        if (time >= TIME_LIMIT && !hasReachedLimit) {
+          console.log('[AUTH] Time limit reached!')
           setHasReachedLimit(true)
-          videoPlayer.pause()
-          setShowAuthModal(true)
+          
+          // BLOQUEAR SEMPRE se atingiu o limite e:
+          // 1. Não está autenticado OU
+          // 2. Está autenticado mas não doou (após verificação)
+          const shouldBlock = !isAuthenticated || 
+            (isAuthenticated && donationStatusChecked && !hasDonated)
+          
+          if (shouldBlock) {
+            console.log('[AUTH] BLOCKING VIDEO - User must authenticate and donate')
+            videoPlayer.pause()
+            setShowAuthModal(true)
+          } else {
+            console.log('[AUTH] ALLOWING VIDEO - User is authenticated and donated')
+          }
+        }
+        
+        // BLOQUEIO CONTÍNUO: Se já atingiu limite e não tem acesso, pausar sempre
+        if (hasReachedLimit) {
+          const shouldBlock = !isAuthenticated || 
+            (isAuthenticated && donationStatusChecked && !hasDonated)
+          
+          if (shouldBlock && !videoPlayer.paused) {
+            console.log('[AUTH] CONTINUOUS BLOCK - Pausing video')
+            videoPlayer.pause()
+          }
         }
       }
     }
@@ -201,10 +259,19 @@ export function WatchSection() {
     }
   }
 
-  // Bloquear reprodução se atingiu o limite e não está autenticado
+  // Bloquear reprodução se atingiu o limite e não está autenticado OU não doou
   const handlePlayAttempt = useCallback(() => {
-    if (hasReachedLimit && !isAuthenticated) {
-      console.log('[AUTH] Play blocked - user must authenticate')
+    // BLOQUEAR SEMPRE se atingiu o limite e:
+    // 1. Não está autenticado OU
+    // 2. Está autenticado mas não doou (após verificação)
+    const shouldBlock = hasReachedLimit && (
+      !isAuthenticated || 
+      (isAuthenticated && donationStatusChecked && !hasDonated)
+    )
+    
+    if (shouldBlock) {
+      console.log('[AUTH] Play blocked - user must authenticate and donate')
+      console.log('[AUTH] isAuthenticated:', isAuthenticated, 'hasDonated:', hasDonated, 'donationStatusChecked:', donationStatusChecked)
       const player = useFallbackPlayer ? videoRef.current : playerRef.current
       if (player) {
         const videoPlayer = player as any
@@ -214,7 +281,7 @@ export function WatchSection() {
       return false
     }
     return true
-  }, [hasReachedLimit, isAuthenticated, useFallbackPlayer])
+  }, [hasReachedLimit, isAuthenticated, hasDonated, donationStatusChecked, useFallbackPlayer])
 
   useEffect(() => {
     const currentPlayerRef = useFallbackPlayer ? videoRef : playerRef
@@ -224,9 +291,17 @@ export function WatchSection() {
       const player = currentPlayerRef.current as any
 
       const handlePlay = () => {
-        // Verificar se pode reproduzir
-        if (hasReachedLimit && !isAuthenticated) {
-          console.log("[AUTH] Play blocked - user must authenticate")
+        // BLOQUEAR SEMPRE se atingiu o limite e:
+        // 1. Não está autenticado OU
+        // 2. Está autenticado mas não doou (após verificação)
+        const shouldBlock = hasReachedLimit && (
+          !isAuthenticated || 
+          (isAuthenticated && donationStatusChecked && !hasDonated)
+        )
+        
+        if (shouldBlock) {
+          console.log("[AUTH] Play blocked - user must authenticate and donate")
+          console.log("[AUTH] isAuthenticated:", isAuthenticated, "hasDonated:", hasDonated, "donationStatusChecked:", donationStatusChecked)
           player.pause()
           setShowAuthModal(true)
           return
@@ -296,28 +371,38 @@ export function WatchSection() {
           {/* Hero Video Player */}
           <div className="relative aspect-video rounded-2xl overflow-hidden bg-gradient-to-br from-gray-900 via-black to-gray-900 shadow-2xl">
               {/* Indicador de tempo */}
-              <TimeIndicator 
-                currentTime={currentTime}
-                timeLimit={TIME_LIMIT}
-                isAuthenticated={isAuthenticated}
-              />
+        <TimeIndicator
+          currentTime={currentTime}
+          timeLimit={TIME_LIMIT}
+          isAuthenticated={isAuthenticated}
+          hasDonated={hasDonated}
+          donationStatusChecked={donationStatusChecked}
+        />
               
               {/* Botão de teste temporário - remover em produção */}
-              {!isAuthenticated && (
-                <div className="absolute top-4 left-4 z-20">
-                  <Button 
-                    onClick={testTimeLimit}
-                    size="sm"
-                    variant="destructive"
-                    className="text-xs"
-                  >
-                    Testar Modal
-                  </Button>
+              <div className="absolute top-4 left-4 z-20">
+                <Button 
+                  onClick={testTimeLimit}
+                  size="sm"
+                  variant="destructive"
+                  className="text-xs"
+                >
+                  Testar Modal
+                </Button>
+                <div className="mt-2 text-xs text-white bg-black/60 p-2 rounded">
+                  Auth: {isAuthenticated ? '✅' : '❌'} | 
+                  Donated: {hasDonated ? '✅' : '❌'} |
+                  Checked: {donationStatusChecked ? '✅' : '❌'} |
+                  Checking: {checkingDonation ? '🔄' : '⏸️'}
                 </div>
-              )}
+              </div>
+
 
               {/* Overlay de bloqueio após limite de tempo */}
-              {hasReachedLimit && !isAuthenticated && (
+              {hasReachedLimit && (
+                !isAuthenticated || 
+                (isAuthenticated && donationStatusChecked && !hasDonated)
+              ) && (
                 <div className="absolute inset-0 bg-black/90 backdrop-blur-sm z-30 flex items-center justify-center">
                   <div className="text-center text-white p-8">
                     <div className="mb-6">
@@ -328,23 +413,37 @@ export function WatchSection() {
                       </div>
                       <h3 className="text-2xl font-bold mb-2">Acesso Restrito</h3>
                       <p className="text-gray-300 mb-6">
-                        Para continuar assistindo, você precisa se autenticar
+                        {!isAuthenticated 
+                          ? "Para continuar assistindo, você precisa se autenticar e fazer uma doação"
+                          : "Para continuar assistindo, você precisa fazer uma doação para apoiar o projeto"
+                        }
                       </p>
                     </div>
                     <div className="flex gap-4 justify-center">
-                      <Button 
-                        onClick={() => setShowAuthModal(true)}
-                        className="bg-primary hover:bg-primary/90"
-                      >
-                        Apoiar Agora
-                      </Button>
-                      <Button 
-                        onClick={() => setShowAuthModal(true)}
-                        variant="outline"
-                        className="border-white text-white hover:bg-white hover:text-black"
-                      >
-                        Já Apoiei
-                      </Button>
+                      {!isAuthenticated ? (
+                        <>
+                          <Button 
+                            onClick={() => setShowAuthModal(true)}
+                            className="bg-primary hover:bg-primary/90"
+                          >
+                            Apoiar Agora
+                          </Button>
+                          <Button 
+                            onClick={() => setShowAuthModal(true)}
+                            variant="outline"
+                            className="border-white text-white hover:bg-white hover:text-black"
+                          >
+                            Já Apoiei
+                          </Button>
+                        </>
+                      ) : (
+                        <Button 
+                          onClick={() => setShowAuthModal(true)}
+                          className="bg-primary hover:bg-primary/90"
+                        >
+                          Fazer Doação
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -569,6 +668,7 @@ export function WatchSection() {
           </div>
         </div>
       </div>
+
 
       {/* Modal de Autenticação */}
       <AuthModal
