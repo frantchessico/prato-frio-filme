@@ -1,6 +1,6 @@
 "use client"
 
-import React from 'react'
+import React, { memo, useMemo } from 'react'
 import { Progress } from '@/components/ui/progress'
 import { Clock, Lock } from 'lucide-react'
 
@@ -12,14 +12,24 @@ interface TimeIndicatorProps {
   donationStatusChecked?: boolean
 }
 
-export function TimeIndicator({ currentTime, timeLimit, isAuthenticated, hasDonated, donationStatusChecked }: TimeIndicatorProps) {
-  const progress = Math.min((currentTime / timeLimit) * 100, 100)
-  const remainingTime = Math.max(timeLimit - currentTime, 0)
-  const minutes = Math.floor(remainingTime / 60)
-  const seconds = Math.floor(remainingTime % 60)
+export const TimeIndicator = memo(function TimeIndicator({ 
+  currentTime, 
+  timeLimit, 
+  isAuthenticated, 
+  hasDonated, 
+  donationStatusChecked 
+}: TimeIndicatorProps) {
+  const { progress, remainingTime, minutes, seconds, shouldShow } = useMemo(() => {
+    const progress = Math.min((currentTime / timeLimit) * 100, 100)
+    const remainingTime = Math.max(timeLimit - currentTime, 0)
+    const minutes = Math.floor(remainingTime / 60)
+    const seconds = Math.floor(remainingTime % 60)
+    const shouldShow = !(isAuthenticated && donationStatusChecked && hasDonated)
+    
+    return { progress, remainingTime, minutes, seconds, shouldShow }
+  }, [currentTime, timeLimit, isAuthenticated, hasDonated, donationStatusChecked])
 
-  // Só não mostrar se está autenticado E doou (após verificação)
-  if (isAuthenticated && donationStatusChecked && hasDonated) {
+  if (!shouldShow) {
     return null
   }
 
@@ -47,4 +57,4 @@ export function TimeIndicator({ currentTime, timeLimit, isAuthenticated, hasDona
       )}
     </div>
   )
-}
+})

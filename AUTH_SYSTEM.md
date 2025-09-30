@@ -54,7 +54,7 @@ Sistema de autenticação JWT implementado para controlar o acesso ao filme "Pra
 
 ### **Variáveis de Ambiente:**
 ```env
-JWT_SECRET=prato-frio-super-secret-key-2024-mocambique
+JWT_SECRET=prato-frio-super-secret-key-2025-mocambique
 ```
 
 ### **Dependências:**

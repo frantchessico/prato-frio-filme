@@ -9,6 +9,7 @@ export interface IUser extends Document {
   hasDonated: boolean
   donationAmount?: number
   donationDate?: Date
+  donationExpiresAt?: Date // Nova data de expiração da doação (3 dias)
   lastLogin?: Date
   createdAt: Date
   updatedAt: Date
@@ -47,6 +48,10 @@ const UserSchema = new Schema<IUser>({
     type: Date,
     default: null
   },
+  donationExpiresAt: {
+    type: Date,
+    default: null
+  },
   lastLogin: {
     type: Date,
     default: null
@@ -56,7 +61,6 @@ const UserSchema = new Schema<IUser>({
 })
 
 // Índices para otimização
-UserSchema.index({ phone: 1 })
 UserSchema.index({ hasDonated: 1 })
 UserSchema.index({ createdAt: -1 })
 

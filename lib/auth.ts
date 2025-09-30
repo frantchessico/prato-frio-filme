@@ -5,7 +5,7 @@ import { User, IUser } from '@/models/User'
 import { UserSession } from '@/models/UserSession'
 import { Analytics } from '@/models/Analytics'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'prato-frio-super-secret-key-2024-mocambique'
+const JWT_SECRET = process.env.JWT_SECRET || 'prato-frio-super-secret-key-2025-mocambique'
 const SALT_ROUNDS = 10
 
 export async function hashPassword(password: string): Promise<string> {
@@ -158,6 +158,10 @@ export async function updateUserDonationStatus(userId: string, hasDonated: boole
   if (donationAmount) {
     updateData.donationAmount = donationAmount
     updateData.donationDate = new Date()
+    // Definir expiração para 3 dias a partir de agora
+    const expirationDate = new Date()
+    expirationDate.setDate(expirationDate.getDate() + 3)
+    updateData.donationExpiresAt = expirationDate
   }
 
   const user = await User.findByIdAndUpdate(
@@ -172,7 +176,7 @@ export async function updateUserDonationStatus(userId: string, hasDonated: boole
       userId: user._id.toString(),
       event: 'donation_status_updated',
       category: 'donation',
-      data: { hasDonated, donationAmount }
+      data: { hasDonated, donationAmount, expiresAt: updateData.donationExpiresAt }
     })
   }
 

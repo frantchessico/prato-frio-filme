@@ -14,15 +14,16 @@ export function SynopsisSection() {
           <CardContent className="p-8 md:p-12">
             <div className="space-y-6">
               <p className="text-lg md:text-xl leading-relaxed text-muted-foreground">
-                Em uma cidade onde os segredos são moeda corrente, um chef renomado descobre que sua vida perfeita foi
-                construída sobre mentiras. Quando o passado volta para assombrá-lo, ele deve escolher entre a verdade
-                que pode destruí-lo ou a vingança que pode salvá-lo.
+                Erica, uma jovem de 19 anos, vive uma vida aparentemente perfeita com seus pais ricos. Mas seu mundo 
+                desmorona quando intrusos armados invadem sua casa e assassinam brutalmente sua família. Enquanto ela 
+                sofre, a verdade vem à tona — "Vingança Congelada" se desenrola como um thriller psicológico envolvente 
+                que explora trauma, traição e vingança, ambientado no Moçambique moderno.
               </p>
 
               <p className="text-lg md:text-xl leading-relaxed text-muted-foreground">
-                <strong className="text-foreground">Prato Frio</strong> é um thriller psicológico que explora os limites
-                da moralidade humana, onde cada decisão tem consequências irreversíveis e a linha entre herói e vilão se
-                torna cada vez mais tênue.
+                <strong className="text-foreground">Prato Frio</strong> é uma história poderosa de uma jovem que transforma 
+                a dor em uma busca implacável por vingança, onde cada decisão tem consequências irreversíveis e a linha 
+                entre vítima e vingadora se torna cada vez mais tênue.
               </p>
 
               <div className="pt-6">

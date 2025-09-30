@@ -43,7 +43,7 @@ export function HeroSection() {
           </h1>
 
           <p className="text-xl md:text-2xl text-gray-300 max-w-2xl mx-auto text-pretty">
-            Quando a vingança é servida fria, o sabor é inesquecível
+            Quando o passado volta à mesa
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-8">

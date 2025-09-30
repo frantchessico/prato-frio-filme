@@ -60,7 +60,6 @@ const DonationSchema = new Schema<IDonation>({
 // Índices para otimização
 DonationSchema.index({ userId: 1 })
 DonationSchema.index({ phone: 1 })
-DonationSchema.index({ reference: 1 })
 DonationSchema.index({ status: 1 })
 DonationSchema.index({ createdAt: -1 })
 

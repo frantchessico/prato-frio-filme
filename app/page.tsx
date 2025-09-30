@@ -6,6 +6,7 @@ import { TrailerSection } from "@/components/trailer-section"
 import { WatchSection } from "@/components/watch-section"
 import { MovieFooter } from "@/components/movie-footer"
 
+
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-background">
@@ -19,6 +20,7 @@ export default function HomePage() {
         <WatchSection />
       </main>
       <MovieFooter />
+      
     </div>
   )
 }

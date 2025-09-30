@@ -56,7 +56,6 @@ const UserSessionSchema = new Schema<IUserSession>({
 
 // Índices para otimização
 UserSessionSchema.index({ userId: 1 })
-UserSessionSchema.index({ token: 1 })
 UserSessionSchema.index({ isActive: 1 })
 UserSessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 }) // TTL index
 

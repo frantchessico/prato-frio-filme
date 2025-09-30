@@ -36,10 +36,18 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Verificar se a doação ainda é válida (3 dias)
+    const now = new Date()
+    const isDonationValid = user.hasDonated && 
+      user.donationExpiresAt && 
+      new Date(user.donationExpiresAt) > now
+
     return NextResponse.json({
-      hasDonated: user.hasDonated || false,
+      hasDonated: isDonationValid,
       donationAmount: user.donationAmount || 0,
-      donationDate: user.donationDate || null
+      donationDate: user.donationDate || null,
+      donationExpiresAt: user.donationExpiresAt || null,
+      isExpired: user.hasDonated && (!user.donationExpiresAt || new Date(user.donationExpiresAt) <= now)
     })
 
   } catch (error: any) {

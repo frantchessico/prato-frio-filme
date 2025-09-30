@@ -2,31 +2,28 @@
 
 import type React from "react"
 import { useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useAuth } from "@/contexts/auth-context"
-import { DonationModal } from "@/components/donation-modal"
 import { Loader2, Phone, User, Lock, CheckCircle, Eye, EyeOff } from "lucide-react"
+import { toast } from "sonner"
 
 interface AuthModalProps {
-  isOpen: boolean
-  onClose: () => void
+  open: boolean
+  onOpenChange: (open: boolean) => void
   onSuccess: () => void
+  onShowDonationModal?: () => void
 }
 
-export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
+export function AuthModal({ open, onOpenChange, onSuccess, onShowDonationModal }: AuthModalProps) {
   const [isLogin, setIsLogin] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
-  const [success, setSuccess] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const [showDonationModal, setShowDonationModal] = useState(false)
-
-  // Estados do formulário
   const [phone, setPhone] = useState("")
   const [password, setPassword] = useState("")
   const [firstName, setFirstName] = useState("")
@@ -43,20 +40,18 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
       const success = await login(phone, password)
       if (success) {
         if (hasDonated) {
-          setSuccess(true)
-          setTimeout(() => {
-            onSuccess()
-            onClose()
-          }, 1500)
+          toast.success("Login realizado com sucesso!")
+          onSuccess()
         } else {
-          // Usuário logado mas não doou - mostrar modal de doação
-          setShowDonationModal(true)
+          // User logged in but hasn't donated - show donation modal
+          onOpenChange(false)
+          if (onShowDonationModal) {
+            onShowDonationModal()
+          }
         }
-      } else {
-        setError("Telefone ou senha incorretos")
       }
-    } catch (error) {
-      setError("Erro ao fazer login")
+    } catch (err: any) {
+      setError(err.message || "Erro ao fazer login")
     } finally {
       setIsLoading(false)
     }
@@ -70,46 +65,38 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
     try {
       const success = await register(phone, firstName, lastName, password)
       if (success) {
-        setShowDonationModal(true)
-      } else {
-        setError("Erro ao criar conta. Telefone pode já estar em uso.")
+        onOpenChange(false)
+        if (onShowDonationModal) {
+          onShowDonationModal()
+        }
       }
-    } catch (error) {
-      setError("Erro ao criar conta")
+    } catch (err: any) {
+      setError(err.message || "Erro ao criar conta")
     } finally {
       setIsLoading(false)
     }
   }
 
-  const resetForm = () => {
+  const handleClose = () => {
+    setError("")
     setPhone("")
     setPassword("")
     setFirstName("")
     setLastName("")
-    setError("")
-    setSuccess(false)
-    setShowPassword(false)
-    setShowDonationModal(false)
+    onOpenChange(false)
   }
 
-  const handleClose = () => {
-    resetForm()
-    onClose()
-  }
-
-  if (success) {
+  if (hasDonated) {
     return (
-      <Dialog open={isOpen} onOpenChange={handleClose}>
-        <DialogContent className="sm:max-w-md bg-card border border-border/50 shadow-2xl">
-          <div className="flex flex-col items-center justify-center py-12">
-            <div className="relative mb-6">
-              <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
-              <CheckCircle className="relative h-20 w-20 text-primary" />
-            </div>
-            <h3 className="text-2xl font-bold text-center mb-3 text-foreground">
-              {isLogin ? "Login realizado com sucesso!" : "Conta criada com sucesso!"}
-            </h3>
-            <p className="text-muted-foreground text-center text-lg">Agora você pode assistir ao filme completo!</p>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-lg">
+          <div className="p-6 text-center">
+            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Obrigado pelo Apoio!</h2>
+            <p className="text-gray-600 mb-6">Você já fez uma doação e pode assistir ao filme completo.</p>
+            <Button onClick={handleClose} className="w-full bg-red-600 hover:bg-red-700 text-white">
+              Continuar Assistindo
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -117,107 +104,106 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-lg bg-card border border-border/50 shadow-2xl backdrop-blur-sm">
-        <DialogHeader className="space-y-4 pb-6">
-          <DialogTitle className="text-center text-3xl font-bold text-foreground">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <div className="p-4 sm:p-6">
+        <div className="text-center mb-4 sm:mb-6">
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
             {isLogin ? "Já Apoiei" : "Apoiar Agora"}
-          </DialogTitle>
-          <div className="w-16 h-1 bg-primary mx-auto rounded-full" />
-        </DialogHeader>
+          </h2>
+          <div className="w-16 h-1 bg-red-600 mx-auto rounded-full" />
+        </div>
 
         <Tabs
           value={isLogin ? "login" : "register"}
           onValueChange={(value) => setIsLogin(value === "login")}
-          className="space-y-6"
+          className="space-y-4 sm:space-y-6"
         >
-          <TabsList className="grid w-full grid-cols-2 bg-muted/20 border border-border/30 p-1 rounded-xl backdrop-blur-sm h-14">
+          <TabsList className="grid w-full grid-cols-2 bg-gray-100 border border-gray-300 p-1 rounded-xl h-12 sm:h-14">
             <TabsTrigger
               value="login"
-              className="h-12 rounded-lg font-semibold text-base transition-all duration-300 data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-muted/30"
+              className="h-10 sm:h-12 rounded-lg font-semibold text-sm sm:text-base transition-all duration-300 data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-900 data-[state=inactive]:hover:bg-gray-200"
             >
               Login
             </TabsTrigger>
             <TabsTrigger
               value="register"
-              className="h-12 rounded-lg font-semibold text-base transition-all duration-300 data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-muted/30"
+              className="h-10 sm:h-12 rounded-lg font-semibold text-sm sm:text-base transition-all duration-300 data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-900 data-[state=inactive]:hover:bg-gray-200"
             >
-              Registrar
+              Cadastro
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="login" className="space-y-0">
-            <Card className="bg-card/50 border border-border/50 shadow-lg backdrop-blur-sm">
-              <CardHeader className="pb-6">
-                <CardTitle className="flex items-center gap-3 text-foreground font-bold text-xl">
-                  <div className="p-2 bg-primary/10 rounded-lg">
-                    <User className="h-5 w-5 text-primary" />
-                  </div>
+          {error && (
+            <div className="p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-600 text-sm font-medium">{error}</p>
+            </div>
+          )}
+
+          <TabsContent value="login" className="space-y-3 sm:space-y-4">
+            <Card className="bg-white border border-gray-200 shadow-md">
+              <CardHeader className="pb-3 sm:pb-4">
+                <CardTitle className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <User className="h-4 w-4 sm:h-5 sm:w-5 text-red-600" />
                   Fazer Login
                 </CardTitle>
-                <CardDescription className="text-muted-foreground text-base">
-                  Entre com seu telefone e senha para continuar
+                <CardDescription className="text-gray-700 font-medium text-sm">
+                  Entre com suas credenciais para continuar assistindo
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <form onSubmit={handleLogin} className="space-y-6">
-                  <div className="space-y-3">
-                    <Label htmlFor="login-phone" className="text-foreground font-semibold text-sm">
-                      Telefone
+              <CardContent>
+                <form onSubmit={handleLogin} className="space-y-3 sm:space-y-4">
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label htmlFor="login-phone" className="text-black font-bold text-sm">
+                      Número de Telefone
                     </Label>
-                    <div className="relative group">
-                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                       <Input
                         id="login-phone"
                         type="tel"
                         placeholder="+258 84 123 4567"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
-                        className="pl-12 h-12 bg-input border-border/50 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-foreground placeholder:text-muted-foreground rounded-lg"
+                        className="pl-10 text-black font-medium border-gray-400 h-10 sm:h-12"
                         required
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-3">
-                    <Label htmlFor="login-password" className="text-foreground font-semibold text-sm">
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label htmlFor="login-password" className="text-black font-bold text-sm">
                       Senha
                     </Label>
-                    <div className="relative group">
-                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                       <Input
                         id="login-password"
                         type={showPassword ? "text" : "password"}
                         placeholder="Sua senha"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="pl-12 pr-12 h-12 bg-input border-border/50 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-foreground placeholder:text-muted-foreground rounded-lg"
+                        className="pl-10 pr-10 text-black font-medium border-gray-400 h-10 sm:h-12"
                         required
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
+                        className="absolute right-3 top-3 h-4 w-4 text-gray-400 hover:text-gray-600"
                       >
-                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
                   </div>
 
-                  {error && (
-                    <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 p-4 rounded-lg font-medium">
-                      {error}
-                    </div>
-                  )}
-
                   <Button
                     type="submit"
-                    className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 h-12 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-red-600/25 hover:scale-[1.02] text-base rounded-lg"
                     disabled={isLoading}
+                    className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 h-10 sm:h-12 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-red-600/25 hover:scale-[1.02] text-sm sm:text-base rounded-lg border-2 border-red-600"
                   >
                     {isLoading ? (
                       <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Entrando...
                       </>
                     ) : (
@@ -229,42 +215,22 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
             </Card>
           </TabsContent>
 
-          <TabsContent value="register" className="space-y-0">
-            <Card className="bg-card/50 border border-border/50 shadow-lg backdrop-blur-sm">
-              <CardHeader className="pb-6">
-                <CardTitle className="flex items-center gap-3 text-foreground font-bold text-xl">
-                  <div className="p-2 bg-primary/10 rounded-lg">
-                    <User className="h-5 w-5 text-primary" />
-                  </div>
+          <TabsContent value="register" className="space-y-3 sm:space-y-4">
+            <Card className="bg-white border border-gray-200 shadow-md">
+              <CardHeader className="pb-3 sm:pb-4">
+                <CardTitle className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <User className="h-4 w-4 sm:h-5 sm:w-5 text-red-600" />
                   Criar Conta
                 </CardTitle>
-                <CardDescription className="text-muted-foreground text-base">
-                  Preencha os dados para apoiar o projeto
+                <CardDescription className="text-gray-700 font-medium text-sm">
+                  Cadastre-se para apoiar o projeto e assistir ao filme completo
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <form onSubmit={handleRegister} className="space-y-6">
-                  <div className="space-y-3">
-                    <Label htmlFor="register-phone" className="text-foreground font-semibold text-sm">
-                      Telefone
-                    </Label>
-                    <div className="relative group">
-                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                      <Input
-                        id="register-phone"
-                        type="tel"
-                        placeholder="+258 84 123 4567"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        className="pl-12 h-12 bg-input border-border/50 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-foreground placeholder:text-muted-foreground rounded-lg"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-3">
-                      <Label htmlFor="register-firstName" className="text-foreground font-semibold text-sm">
+              <CardContent>
+                <form onSubmit={handleRegister} className="space-y-3 sm:space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    <div className="space-y-1.5 sm:space-y-2">
+                      <Label htmlFor="register-firstName" className="text-black font-bold text-sm">
                         Primeiro Nome
                       </Label>
                       <Input
@@ -273,13 +239,12 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
                         placeholder="João"
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
-                        className="h-12 bg-input border-border/50 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-foreground placeholder:text-muted-foreground rounded-lg"
+                        className="text-black font-medium border-gray-400 h-10 sm:h-12"
                         required
                       />
                     </div>
-
-                    <div className="space-y-3">
-                      <Label htmlFor="register-lastName" className="text-foreground font-semibold text-sm">
+                    <div className="space-y-1.5 sm:space-y-2">
+                      <Label htmlFor="register-lastName" className="text-black font-bold text-sm">
                         Último Nome
                       </Label>
                       <Input
@@ -288,54 +253,64 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
                         placeholder="Silva"
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
-                        className="h-12 bg-input border-border/50 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-foreground placeholder:text-muted-foreground rounded-lg"
+                        className="text-black font-medium border-gray-400 h-10 sm:h-12"
                         required
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-3">
-                    <Label htmlFor="register-password" className="text-foreground font-semibold text-sm">
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label htmlFor="register-phone" className="text-black font-bold text-sm">
+                      Número de Telefone
+                    </Label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Input
+                        id="register-phone"
+                        type="tel"
+                        placeholder="+258 84 123 4567"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className="pl-10 text-black font-medium border-gray-400 h-10 sm:h-12"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label htmlFor="register-password" className="text-black font-bold text-sm">
                       Senha
                     </Label>
-                    <div className="relative group">
-                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                       <Input
                         id="register-password"
                         type={showPassword ? "text" : "password"}
-                        placeholder="Mínimo 6 caracteres"
+                        placeholder="Sua senha"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="pl-12 pr-12 h-12 bg-input border-border/50 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-foreground placeholder:text-muted-foreground rounded-lg"
+                        className="pl-10 pr-10 text-black font-medium border-gray-400 h-10 sm:h-12"
                         required
-                        minLength={6}
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
+                        className="absolute right-3 top-3 h-4 w-4 text-gray-400 hover:text-gray-600"
                       >
-                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
                   </div>
 
-
-                  {error && (
-                    <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 p-4 rounded-lg font-medium">
-                      {error}
-                    </div>
-                  )}
-
                   <Button
                     type="submit"
-                    className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 h-12 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-red-600/25 hover:scale-[1.02] text-base rounded-lg"
                     disabled={isLoading}
+                    className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 h-10 sm:h-12 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-red-600/25 hover:scale-[1.02] text-sm sm:text-base rounded-lg border-2 border-red-600"
                   >
                     {isLoading ? (
                       <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Criando conta...
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Criando...
                       </>
                     ) : (
                       "Criar Conta"
@@ -346,21 +321,8 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
             </Card>
           </TabsContent>
         </Tabs>
+        </div>
       </DialogContent>
-
-      {/* Modal de Doação */}
-      <DonationModal
-        isOpen={showDonationModal}
-        onClose={() => setShowDonationModal(false)}
-        onSuccess={() => {
-          setShowDonationModal(false)
-          setSuccess(true)
-          setTimeout(() => {
-            onSuccess()
-            onClose()
-          }, 1500)
-        }}
-      />
     </Dialog>
   )
 }
