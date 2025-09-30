@@ -20,6 +20,8 @@ export default function AuthPage() {
   const showDonation = searchParams.get("donation") === "true"
 
   const { login, register, isAuthenticated, hasDonated, donationStatusChecked, isHydrated } = useAuth()
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
 
   // Redirecionar usuários já autenticados
   useEffect(() => {
@@ -54,8 +56,6 @@ export default function AuthPage() {
   if (isAuthenticated) {
     return null
   }
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
 
   const [showLoginPassword, setShowLoginPassword] = useState(false)
   const [showRegisterPassword, setShowRegisterPassword] = useState(false)
