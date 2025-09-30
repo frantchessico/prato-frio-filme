@@ -27,12 +27,12 @@ export default function AuthPage() {
   useEffect(() => {
     if (!isHydrated) return // Aguardar hidratação
 
-    if (isAuthenticated) {
-      if (donationStatusChecked && !hasDonated) {
+    if (isAuthenticated && donationStatusChecked) {
+      if (!hasDonated) {
         // Usuário logado sem doação -> redirecionar para doação
         console.log("🔴 Usuário autenticado sem doação - redirecionando para donate...")
         router.push("/donate?redirect=/#assistir")
-      } else if (donationStatusChecked && hasDonated) {
+      } else {
         // Usuário logado com doação -> redirecionar para home
         console.log("🔴 Usuário autenticado com doação - redirecionando para home...")
         router.push("/")

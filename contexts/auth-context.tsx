@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
 import { toast } from "sonner"
 
 interface User {
@@ -74,13 +74,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isAuthenticated = !!user && !!token
 
+  const checkDonationStatus = useCallback(async () => {
+    if (!user || !token) return false
+
+    try {
+      setCheckingDonation(true)
+      const response = await fetch("/api/user/donation-status", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setHasDonated(data.hasDonated)
+        setDonationStatusChecked(true)
+        if (user) {
+          setUser({ 
+            ...user, 
+            hasDonated: data.hasDonated,
+            donationExpiresAt: data.donationExpiresAt,
+            isExpired: data.isExpired
+          })
+        }
+        console.log("[AUTH] Donation status checked:", data.hasDonated, "Expires:", data.donationExpiresAt)
+        return data.hasDonated
+      }
+      return false
+    } catch (error) {
+      console.error("[AUTH] Error checking donation status:", error)
+      return false
+    } finally {
+      setCheckingDonation(false)
+    }
+  }, [user, token])
+
   // Verificar status de doação quando usuário estiver autenticado
   useEffect(() => {
     if (isAuthenticated && user && isHydrated) {
       // Also check hydration
       checkDonationStatus()
     }
-  }, [isAuthenticated, user, isHydrated]) // Include hydration in dependencies
+  }, [isAuthenticated, user, isHydrated, checkDonationStatus]) // Include checkDonationStatus in dependencies
 
   const login = async (phone: string, password: string): Promise<boolean> => {
     try {
@@ -215,43 +252,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       description: "Você foi desconectado com sucesso.",
       duration: 2000,
     })
-  }
-
-  const checkDonationStatus = async () => {
-    if (!user || !token) return false
-
-    try {
-      setCheckingDonation(true)
-      const response = await fetch("/api/user/donation-status", {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setHasDonated(data.hasDonated)
-        setDonationStatusChecked(true)
-        if (user) {
-          setUser({ 
-            ...user, 
-            hasDonated: data.hasDonated,
-            donationExpiresAt: data.donationExpiresAt,
-            isExpired: data.isExpired
-          })
-        }
-        console.log("[AUTH] Donation status checked:", data.hasDonated, "Expires:", data.donationExpiresAt)
-        return data.hasDonated
-      }
-      return false
-    } catch (error) {
-      console.error("[AUTH] Error checking donation status:", error)
-      return false
-    } finally {
-      setCheckingDonation(false)
-    }
   }
 
   const markAsDonated = () => {
