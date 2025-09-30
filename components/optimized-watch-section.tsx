@@ -398,14 +398,14 @@ export function OptimizedWatchSection() {
 
         {/* Modais */}
         <AuthModal
-          isOpen={showAuthModal}
-          onClose={handleAuthClose}
+          open={showAuthModal}
+          onOpenChange={handleAuthClose}
           onSuccess={handleAuthSuccess}
         />
 
         <DonationModal
-          isOpen={showDonationModal}
-          onClose={handleDonationClose}
+          open={showDonationModal}
+          onOpenChange={handleDonationClose}
           onSuccess={handleDonationSuccess}
         />
       </div>
