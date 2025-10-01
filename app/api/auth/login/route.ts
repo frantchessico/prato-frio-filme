@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { authenticateUser, generateToken, createUserSession, logAnalytics } from '@/lib/auth'
-import { logger } from '@/lib/logger'
 import { validateInput, validationSchemas, checkRateLimit } from '@/lib/security'
 
 export async function POST(request: NextRequest) {
@@ -51,7 +50,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error: any) {
-    logger.error('Login error:', error)
+    console.error('Login error:', error)
     return NextResponse.json(
       { error: error.message || 'Erro interno do servidor' },
       { status: 401 }

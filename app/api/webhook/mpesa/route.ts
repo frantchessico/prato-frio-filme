@@ -3,14 +3,13 @@ import dbConnect from '@/lib/mongodb'
 import { Donation } from '@/models/Donation'
 import { User } from '@/models/User'
 import { logAnalytics } from '@/lib/auth'
-import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
     await dbConnect()
     
     const body = await request.json()
-    logger.log('M-Pesa Webhook received:', body)
+    console.log('M-Pesa Webhook received:', body)
 
     // Verificar se é uma confirmação de pagamento
     if (body.status === 'completed' && body.reference) {
@@ -46,13 +45,13 @@ export async function POST(request: NextRequest) {
           }
         )
 
-        logger.log(`Donation ${donation.reference} completed successfully`)
+        console.log(`Donation ${donation.reference} completed successfully`)
       }
     }
 
     return NextResponse.json({ success: true })
   } catch (error: any) {
-    logger.error('Webhook error:', error)
+    console.error('Webhook error:', error)
     return NextResponse.json(
       { error: error.message || 'Erro interno do servidor' },
       { status: 500 }
