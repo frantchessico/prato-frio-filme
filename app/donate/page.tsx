@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { LoadingScreen } from "@/components/ui/loading"
 import { useAuth } from "@/contexts/auth-context"
+import { logger } from "@/lib/logger"
 import Link from "next/link"
 import { Heart } from "lucide-react"
 
@@ -40,8 +41,17 @@ export default function DonatePage() {
     return <LoadingScreen text="Carregando..." />
   }
 
+  // Log do estado atual
+  logger.log("[DONATE] Page state:", {
+    isAuthenticated,
+    hasDonated,
+    donationStatusChecked,
+    isHydrated
+  })
+
   // Se usuário já doou, redirecionar para home
   if (isAuthenticated && donationStatusChecked && hasDonated) {
+    logger.log("[DONATE] User already donated, redirecting to home")
     router.push("/")
     return null
   }

@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LoadingScreen } from "@/components/ui/loading"
 import { useAuth } from "@/contexts/auth-context"
+import { logger } from "@/lib/logger"
 import Link from "next/link"
 import { Phone, Lock, User, Eye, EyeOff, ArrowLeft } from "lucide-react"
 import { useEffect } from "react"
@@ -24,20 +25,39 @@ export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
 
+  // Log do estado atual da página
+  logger.log("[AUTH PAGE] Current state:", {
+    isAuthenticated,
+    hasDonated,
+    donationStatusChecked,
+    isHydrated
+  })
+
   // Redirecionar usuários já autenticados
   useEffect(() => {
-    if (!isHydrated) return // Aguardar hidratação
+    if (!isHydrated) {
+      logger.log("[AUTH PAGE] Waiting for hydration...")
+      return // Aguardar hidratação
+    }
+
+    logger.log("[AUTH PAGE] Checking redirect conditions:", {
+      isAuthenticated,
+      hasDonated,
+      donationStatusChecked
+    })
 
     if (isAuthenticated && donationStatusChecked) {
       if (!hasDonated) {
         // Usuário logado sem doação -> redirecionar para doação
-        console.log("🔴 Usuário autenticado sem doação - redirecionando para donate...")
+        logger.log("🔴 Usuário autenticado sem doação - redirecionando para donate...")
         router.push("/donate?redirect=/#assistir")
       } else {
         // Usuário logado com doação -> redirecionar para home
-        console.log("🔴 Usuário autenticado com doação - redirecionando para home...")
+        logger.log("🔴 Usuário autenticado com doação - redirecionando para home...")
         router.push("/")
       }
+    } else if (isAuthenticated && !donationStatusChecked) {
+      logger.log("[AUTH PAGE] User authenticated but donation status not checked yet")
     }
   }, [isAuthenticated, hasDonated, donationStatusChecked, isHydrated, router])
 

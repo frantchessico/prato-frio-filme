@@ -64,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         setUser(userData)
         setHasDonated(false) // Será verificado no banco
+        setDonationStatusChecked(false) // Será verificado no banco
       } catch (error) {
         // Token inválido, remover
         localStorage.removeItem("auth_token")
@@ -101,6 +102,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           })
         }
         logger.log("[AUTH] Donation status checked:", data.hasDonated, "Expires:", data.donationExpiresAt)
+        logger.log("[AUTH] User state after donation check:", { 
+          isAuthenticated, 
+          hasDonated: data.hasDonated, 
+          donationStatusChecked: true,
+          user: user?.id 
+        })
         return data.hasDonated
       }
       return false
@@ -114,8 +121,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Verificar status de doação quando usuário estiver autenticado
   useEffect(() => {
+    logger.log("[AUTH CONTEXT] Checking donation status conditions:", {
+      isAuthenticated,
+      hasUser: !!user,
+      isHydrated,
+      userId: user?.id
+    })
+    
     if (isAuthenticated && user && isHydrated) {
-      // Also check hydration
+      logger.log("[AUTH CONTEXT] Calling checkDonationStatus...")
       checkDonationStatus()
     }
   }, [isAuthenticated, user, isHydrated, checkDonationStatus]) // Include checkDonationStatus in dependencies
@@ -135,9 +149,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(data.token)
         setUser(data.user)
         setHasDonated(data.user.hasDonated || false)
+        setDonationStatusChecked(false) // Será verificado após login
         if (isHydrated) {
           localStorage.setItem("auth_token", data.token)
         }
+        
+        logger.log("[AUTH] Login successful:", {
+          userId: data.user.id,
+          hasDonated: data.user.hasDonated,
+          isAuthenticated: true
+        })
 
         toast.success("Login realizado com sucesso!", {
           description: `Bem-vindo, ${data.user.firstName}!`,

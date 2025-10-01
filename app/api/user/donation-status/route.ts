@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken, findUserById } from '@/lib/auth'
 import dbConnect from '@/lib/mongodb'
+import { logger } from '@/lib/logger'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error: any) {
-    console.error('Donation status error:', error)
+    logger.error('Donation status error:', error)
     return NextResponse.json(
       { error: error.message || 'Erro interno do servidor' },
       { status: 500 }
