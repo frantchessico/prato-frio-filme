@@ -1,14 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { authenticateUser, generateToken, createUserSession, logAnalytics } from '@/lib/auth'
+import { logger } from '@/lib/logger'
+import { validateInput, validationSchemas, checkRateLimit } from '@/lib/security'
 
 export async function POST(request: NextRequest) {
   try {
     const { phone, password } = await request.json()
 
-    // Validações básicas
-    if (!phone || !password) {
+    // Rate limiting
+    const clientIP = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
+    if (!checkRateLimit(`login:${clientIP}`, 5, 60000)) {
       return NextResponse.json(
-        { error: 'Telefone e senha são obrigatórios' },
+        { error: 'Muitas tentativas de login. Tente novamente em 1 minuto.' },
+        { status: 429 }
+      )
+    }
+
+    // Validações de segurança
+    if (!validateInput({ phone, password }, {
+      phone: validationSchemas.phone,
+      password: validationSchemas.password
+    })) {
+      return NextResponse.json(
+        { error: 'Dados inválidos' },
         { status: 400 }
       )
     }
@@ -38,7 +52,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error: any) {
-    console.error('Login error:', error)
+    logger.error('Login error:', error)
     return NextResponse.json(
       { error: error.message || 'Erro interno do servidor' },
       { status: 401 }

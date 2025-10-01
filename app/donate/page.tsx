@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { LoadingScreen } from "@/components/ui/loading"
 import { useAuth } from "@/contexts/auth-context"
 import Link from "next/link"
 import { Heart } from "lucide-react"
@@ -36,14 +37,7 @@ export default function DonatePage() {
 
   // Aguardar hidratação antes de fazer verificações
   if (!isHydrated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-black">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-white/80 text-lg font-medium">Carregando...</p>
-        </div>
-      </div>
-    )
+    return <LoadingScreen text="Carregando..." />
   }
 
   // Se usuário já doou, redirecionar para home

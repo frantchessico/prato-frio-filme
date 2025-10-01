@@ -59,6 +59,9 @@ export function TrailerSection() {
   const PLAYER_ID = "trailer"
 
   useEffect(() => {
+    // Verificar se estamos no cliente
+    if (typeof window === 'undefined' || typeof document === 'undefined') return
+
     // Check if Mux Player script is already loaded
     if (document.querySelector('script[src="https://unpkg.com/@mux/mux-player"]')) {
       setIsLoading(false)
@@ -74,8 +77,15 @@ export function TrailerSection() {
       setIsLoading(false)
     }
 
+    script.onerror = () => {
+      setIsLoading(false)
+    }
+
     return () => {
-      // Don't remove script as it might be used by other components
+      // Limpar script se necessário
+      if (script.parentNode) {
+        script.parentNode.removeChild(script)
+      }
     }
   }, [])
 

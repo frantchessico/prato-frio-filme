@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useState, useRef, useEffect, useCallback, memo } from "react"
 import { Button } from "@/components/ui/button"
 import { Languages, Settings } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -10,6 +10,8 @@ import { usePlayer } from "@/contexts/player-context"
 import { useAuth } from "@/contexts/auth-context"
 import { useRouter } from "next/navigation"
 import { TimeIndicator } from "@/components/time-indicator"
+import { logger } from "@/lib/logger"
+import { usePerformanceOptimized } from "@/hooks/use-performance-optimized"
 
 const LANGUAGE_OPTIONS = [
   {
@@ -40,11 +42,12 @@ const QUALITY_OPTIONS = [
   { label: "360p", value: "360p" },
 ]
 
-export function WatchSection() {
+export const WatchSection = memo(function WatchSection() {
   const router = useRouter()
   const { isAuthenticated, hasDonated, checkDonationStatus, checkingDonation, donationStatusChecked } = useAuth()
+  const { isHydrated, useDebounce, useThrottle } = usePerformanceOptimized()
   
-  console.log("🔍 WatchSection - isAuthenticated:", isAuthenticated, "hasDonated:", hasDonated)
+  logger.log("🔍 WatchSection - isAuthenticated:", isAuthenticated, "hasDonated:", hasDonated)
 
   const playerRef = useRef<HTMLElement | HTMLVideoElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -60,13 +63,17 @@ export function WatchSection() {
     if (isAuthenticated && !checkingDonation) {
       checkDonationStatus()
 
+      // Verificar status apenas quando necessário, não a cada 30 segundos
       const interval = setInterval(() => {
-        checkDonationStatus()
-      }, 30000)
+        // Só verificar se o usuário não doou ainda
+        if (!hasDonated) {
+          checkDonationStatus()
+        }
+      }, 60000) // Reduzido para 1 minuto
 
       return () => clearInterval(interval)
     }
-  }, [isAuthenticated, checkDonationStatus, checkingDonation])
+  }, [isAuthenticated, checkDonationStatus, checkingDonation, hasDonated])
 
   useEffect(() => {
     if (hasReachedLimit) {
@@ -77,7 +84,7 @@ export function WatchSection() {
           videoPlayer.pause()
         }
         // Redirecionamento automático para usuário não autenticado
-        console.log("🔴 Redirecionamento automático para auth...")
+        logger.log("🔴 Redirecionamento automático para auth...")
         router.push("/auth?redirect=/#assistir")
       } else if (isAuthenticated && donationStatusChecked && !hasDonated) {
         const player = useFallbackPlayer ? videoRef.current : playerRef.current
@@ -86,7 +93,7 @@ export function WatchSection() {
           videoPlayer.pause()
         }
         // Redirecionamento automático para usuário autenticado sem doação
-        console.log("🔴 Redirecionamento automático para donate...")
+        logger.log("🔴 Redirecionamento automático para donate...")
         router.push("/donate?redirect=/#assistir")
       }
     }
@@ -95,7 +102,7 @@ export function WatchSection() {
   // Verificar se usuário autenticado sem doação deve ser redirecionado imediatamente
   useEffect(() => {
     if (isAuthenticated && donationStatusChecked && !hasDonated) {
-      console.log("🔴 Usuário autenticado sem doação - redirecionando para donate...")
+      logger.log("🔴 Usuário autenticado sem doação - redirecionando para donate...")
       router.push("/donate?redirect=/#assistir")
     }
   }, [isAuthenticated, donationStatusChecked, hasDonated, router])
@@ -178,8 +185,9 @@ export function WatchSection() {
   useEffect(() => {
     if (isLoading) return
 
-    let intervalId: NodeJS.Timeout
+    let intervalId: NodeJS.Timeout | null = null
     let timeUpdateListener: (() => void) | null = null
+    let setupTimer: NodeJS.Timeout | null = null
 
     const checkTime = () => {
       const player = useFallbackPlayer ? videoRef.current : playerRef.current
@@ -220,10 +228,11 @@ export function WatchSection() {
       }
     }
 
-    const timer = setTimeout(setupTimeTracking, 2000)
+    setupTimer = setTimeout(setupTimeTracking, 2000)
 
     return () => {
-      clearTimeout(timer)
+      // Limpar todos os timers e listeners
+      if (setupTimer) clearTimeout(setupTimer)
       if (intervalId) clearInterval(intervalId)
 
       const player = useFallbackPlayer ? videoRef.current : playerRef.current
@@ -232,7 +241,7 @@ export function WatchSection() {
         videoPlayer.removeEventListener("timeupdate", timeUpdateListener)
       }
     }
-  }, [useFallbackPlayer, isAuthenticated, hasDonated, donationStatusChecked, isLoading])
+  }, [useFallbackPlayer, isAuthenticated, hasDonated, donationStatusChecked, isLoading, TIME_LIMIT, hasReachedLimit])
 
   // Funções de redirecionamento removidas - agora é automático
 
@@ -561,4 +570,4 @@ export function WatchSection() {
       </div>
     </section>
   )
-}
+})

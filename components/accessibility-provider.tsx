@@ -18,6 +18,9 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
   const [fontSize, setFontSize] = useState<'small' | 'medium' | 'large'>('medium')
 
   useEffect(() => {
+    // Verificar se estamos no cliente
+    if (typeof window === 'undefined') return
+
     // Check for reduced motion preference
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
     setReducedMotion(mediaQuery.matches)
@@ -31,6 +34,9 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
   }, [])
 
   useEffect(() => {
+    // Verificar se estamos no cliente
+    if (typeof window === 'undefined') return
+
     // Check for high contrast preference
     const mediaQuery = window.matchMedia('(prefers-contrast: high)')
     setHighContrast(mediaQuery.matches)
@@ -44,6 +50,9 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
   }, [])
 
   const announceToScreenReader = (message: string) => {
+    // Verificar se estamos no cliente
+    if (typeof window === 'undefined' || typeof document === 'undefined') return
+
     const announcement = document.createElement('div')
     announcement.setAttribute('aria-live', 'polite')
     announcement.setAttribute('aria-atomic', 'true')
@@ -52,7 +61,9 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
     document.body.appendChild(announcement)
     
     setTimeout(() => {
-      document.body.removeChild(announcement)
+      if (announcement.parentNode) {
+        document.body.removeChild(announcement)
+      }
     }, 1000)
   }
 

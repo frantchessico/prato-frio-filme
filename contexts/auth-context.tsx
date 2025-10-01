@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
 import { toast } from "sonner"
+import { logger } from "@/lib/logger"
 
 interface User {
   id: string
@@ -99,12 +100,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             isExpired: data.isExpired
           })
         }
-        console.log("[AUTH] Donation status checked:", data.hasDonated, "Expires:", data.donationExpiresAt)
+        logger.log("[AUTH] Donation status checked:", data.hasDonated, "Expires:", data.donationExpiresAt)
         return data.hasDonated
       }
       return false
     } catch (error) {
-      console.error("[AUTH] Error checking donation status:", error)
+      logger.error("[AUTH] Error checking donation status:", error)
       return false
     } finally {
       setCheckingDonation(false)
@@ -146,7 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return true
       } else {
         const errorData = await response.json()
-        console.error("Login failed:", errorData.error)
+        logger.error("Login failed:", errorData.error)
 
         if (errorData.error === "Usuário não encontrado") {
           toast.error("Usuário não encontrado", {
@@ -168,7 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return false
       }
     } catch (error) {
-      console.error("Login error:", error)
+      logger.error("Login error:", error)
       toast.error("Erro de conexão", {
         description: "Verifique sua conexão com a internet e tente novamente.",
         duration: 5000,
@@ -204,7 +205,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return true
       } else {
         const errorData = await response.json()
-        console.error("Register failed:", errorData.error)
+        logger.error("Register failed:", errorData.error)
 
         if (errorData.error === "Usuário já existe") {
           toast.error("Usuário já existe", {
@@ -231,7 +232,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return false
       }
     } catch (error) {
-      console.error("Register error:", error)
+      logger.error("Register error:", error)
       toast.error("Erro de conexão", {
         description: "Verifique sua conexão com a internet e tente novamente.",
         duration: 5000,
@@ -255,12 +256,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const markAsDonated = () => {
-    console.log("[AUTH] Marking user as donated")
+    logger.log("[AUTH] Marking user as donated")
     setHasDonated(true)
     if (user) {
       const updatedUser = { ...user, hasDonated: true }
       setUser(updatedUser)
-      console.log("[AUTH] User updated with donation status:", updatedUser)
+      logger.log("[AUTH] User updated with donation status:", updatedUser)
     }
   }
 

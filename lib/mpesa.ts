@@ -1,4 +1,5 @@
 import { Client } from "@paymentsds/mpesa"
+import { secureLogger } from "@/lib/logger"
 
 // Função para gerar referência numérica única
 export function generateReference(): string {
@@ -30,9 +31,9 @@ export async function initiatePayment({
   amount: number
 }) {
   try {
-    console.log("=== INICIANDO PAGAMENTO M-PESA ===")
-    console.log("Telefone:", phoneNumber)
-    console.log("Valor:", amount)
+    secureLogger.log("=== INICIANDO PAGAMENTO M-PESA ===")
+    secureLogger.log("Telefone:", phoneNumber)
+    secureLogger.log("Valor:", amount)
 
     // Formatar o número de telefone
     let formattedPhone = phoneNumber.replace(/\s+/g, "").replace(/[^\d]/g, "")
@@ -42,11 +43,11 @@ export async function initiatePayment({
       formattedPhone = formattedPhone.substring(3)
     }
 
-    console.log("Telefone formatado:", formattedPhone)
+    secureLogger.log("Telefone formatado:", formattedPhone)
 
     // Gerar referência única
     const reference = generateReference()
-    console.log("Referência gerada:", reference)
+    secureLogger.log("Referência gerada:", reference)
 
     // Configurar dados do pagamento
     const paymentData = {
@@ -56,11 +57,11 @@ export async function initiatePayment({
       amount: amount.toString(),
     }
 
-    console.log("Dados do pagamento:", paymentData)
+    secureLogger.log("Dados do pagamento:", paymentData)
 
     // Iniciar a transação
     const payment = await mpesa.receive(paymentData)
-    console.log("Resposta do M-Pesa:", payment)
+    secureLogger.log("Resposta do M-Pesa:", payment)
 
     return {
       success: true,
@@ -70,7 +71,7 @@ export async function initiatePayment({
       message: "Pagamento iniciado com sucesso",
     }
   } catch (error: any) {
-    console.error("Erro ao iniciar pagamento M-Pesa:", error)
+    secureLogger.error("Erro ao iniciar pagamento M-Pesa:", error)
 
     return {
       success: false,
@@ -91,10 +92,10 @@ export async function processPayout({
   reference: string
 }) {
   try {
-    console.log("=== INICIANDO SAQUE M-PESA ===")
-    console.log("Telefone:", phoneNumber)
-    console.log("Valor:", amount)
-    console.log("Referência:", reference)
+    secureLogger.log("=== INICIANDO SAQUE M-PESA ===")
+    secureLogger.log("Telefone:", phoneNumber)
+    secureLogger.log("Valor:", amount)
+    secureLogger.log("Referência:", reference)
 
     // Formatar o número de telefone
     let formattedPhone = phoneNumber.replace(/\s+/g, "").replace(/[^\d]/g, "")
@@ -103,7 +104,7 @@ export async function processPayout({
       formattedPhone = formattedPhone.substring(3)
     }
 
-    console.log("Telefone formatado:", formattedPhone)
+    secureLogger.log("Telefone formatado:", formattedPhone)
 
     // Configurar dados do saque
     const payoutData = {
@@ -113,11 +114,11 @@ export async function processPayout({
       amount: amount.toString(),
     }
 
-    console.log("Dados do saque:", payoutData)
+    secureLogger.log("Dados do saque:", payoutData)
 
     // Enviar o dinheiro
     const result = await mpesa.send(payoutData)
-    console.log("Resposta do M-Pesa:", result)
+    secureLogger.log("Resposta do M-Pesa:", result)
 
     return {
       success: true,
@@ -126,7 +127,7 @@ export async function processPayout({
       message: "Saque processado com sucesso",
     }
   } catch (error: any) {
-    console.error("Erro ao processar saque M-Pesa:", error)
+    secureLogger.error("Erro ao processar saque M-Pesa:", error)
 
     return {
       success: false,

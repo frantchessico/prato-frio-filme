@@ -10,7 +10,7 @@ export function useMemoizedComponent<T extends React.ComponentType<any>>(
 ) {
   return useMemo(() => {
     return React.createElement(Component, props)
-  }, deps)
+  }, [Component, props, ...deps])
 }
 
 // Hook para debounce otimizado
