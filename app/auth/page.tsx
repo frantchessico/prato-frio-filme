@@ -21,49 +21,20 @@ export default function AuthPage() {
   const redirectTo = searchParams.get("redirect") || "/"
   const showDonation = searchParams.get("donation") === "true"
 
-  const { login, register, isAuthenticated, hasDonated, donationStatusChecked, isHydrated } = useAuth()
+  const { login, register, isAuthenticated, isHydrated } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
 
-  // Log do estado atual da página
-  logger.log("[AUTH PAGE] Current state:", {
-    isAuthenticated,
-    hasDonated,
-    donationStatusChecked,
-    isHydrated
-  })
-
-  // Redirecionar usuários já autenticados
+  // Redirecionar usuários já autenticados para home
   useEffect(() => {
-    if (!isHydrated) {
-      logger.log("[AUTH PAGE] Waiting for hydration...")
-      return // Aguardar hidratação
+    if (isAuthenticated && isHydrated) {
+      router.push("/")
     }
+  }, [isAuthenticated, isHydrated, router])
 
-    logger.log("[AUTH PAGE] Checking redirect conditions:", {
-      isAuthenticated,
-      hasDonated,
-      donationStatusChecked
-    })
-
-    if (isAuthenticated && donationStatusChecked) {
-      if (!hasDonated) {
-        // Usuário logado sem doação -> redirecionar para doação
-        logger.log("🔴 Usuário autenticado sem doação - redirecionando para donate...")
-        router.push("/donate?redirect=/#assistir")
-      } else {
-        // Usuário logado com doação -> redirecionar para home
-        logger.log("🔴 Usuário autenticado com doação - redirecionando para home...")
-        router.push("/")
-      }
-    } else if (isAuthenticated && !donationStatusChecked) {
-      logger.log("[AUTH PAGE] User authenticated but donation status not checked yet")
-    }
-  }, [isAuthenticated, hasDonated, donationStatusChecked, isHydrated, router])
-
-  // Mostrar loading enquanto verifica autenticação
-  if (!isHydrated || (isAuthenticated && !donationStatusChecked)) {
-    return <LoadingScreen text="Verificando autenticação..." />
+  // Mostrar loading enquanto verifica hidratação
+  if (!isHydrated) {
+    return <LoadingScreen text="Carregando..." />
   }
 
   // Se usuário está autenticado, não mostrar a página (será redirecionado)
@@ -94,8 +65,8 @@ export default function AuthPage() {
       if (success) {
         setLoginPhone("")
         setLoginPassword("")
-        // Sempre redirecionar para doação após login bem-sucedido
-        router.push("/donate?redirect=/#assistir")
+        // Redirecionar para home após login bem-sucedido
+        router.push("/")
       } else {
         setError("Erro ao fazer login")
       }
@@ -130,8 +101,8 @@ export default function AuthPage() {
         setRegisterPhone("")
         setRegisterPassword("")
         setRegisterConfirmPassword("")
-        // Sempre redirecionar para doação após registro bem-sucedido
-        router.push("/donate?redirect=/#assistir")
+        // Redirecionar para home após registro bem-sucedido
+        router.push("/")
       } else {
         setError("Erro ao criar conta")
       }
