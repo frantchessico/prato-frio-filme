@@ -13,7 +13,7 @@ import { LoadingScreen } from "@/components/ui/loading"
 import { useAuth } from "@/contexts/auth-context"
 import { logger } from "@/lib/logger"
 import Link from "next/link"
-import { Heart } from "lucide-react"
+import { Heart, LogOut } from "lucide-react"
 
 const DONATION_AMOUNTS = [
   { value: "50", label: "50 MZN" },
@@ -27,7 +27,7 @@ export default function DonatePage() {
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get("redirect") || "/"
 
-  const { isAuthenticated, user, isHydrated, hasDonated, donationStatusChecked } = useAuth()
+  const { isAuthenticated, user, isHydrated, hasDonated, donationStatusChecked, logout } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
@@ -135,9 +135,20 @@ export default function DonatePage() {
     <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-br from-background via-background to-muted">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link href="/" className="inline-block">
-            <h1 className="text-4xl font-serif font-bold text-primary mb-2">Prato Frio</h1>
-          </Link>
+          <div className="flex justify-between items-center mb-4">
+            <Link href="/" className="inline-block">
+              <h1 className="text-4xl font-serif font-bold text-primary">Prato Frio</h1>
+            </Link>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={logout}
+              className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+            >
+              <LogOut className="w-4 h-4" />
+              Sair
+            </Button>
+          </div>
           <p className="text-muted-foreground">Apoie o projeto e continue assistindo</p>
         </div>
 
