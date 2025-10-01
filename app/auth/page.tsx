@@ -10,7 +10,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LoadingScreen } from "@/components/ui/loading"
 import { useAuth } from "@/contexts/auth-context"
-import { logger } from "@/lib/logger"
 import Link from "next/link"
 import { Phone, Lock, User, Eye, EyeOff, ArrowLeft } from "lucide-react"
 import { useEffect } from "react"
@@ -18,7 +17,6 @@ import { useEffect } from "react"
 export default function AuthPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirectTo = searchParams.get("redirect") || "/"
   const showDonation = searchParams.get("donation") === "true"
 
   const { login, register, isAuthenticated, isHydrated } = useAuth()
