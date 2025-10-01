@@ -94,11 +94,8 @@ export default function AuthPage() {
       if (success) {
         setLoginPhone("")
         setLoginPassword("")
-        if (showDonation) {
-          router.push("/donate")
-        } else {
-          router.push(redirectTo)
-        }
+        // Sempre redirecionar para doação após login bem-sucedido
+        router.push("/donate?redirect=/#assistir")
       } else {
         setError("Erro ao fazer login")
       }
@@ -133,11 +130,8 @@ export default function AuthPage() {
         setRegisterPhone("")
         setRegisterPassword("")
         setRegisterConfirmPassword("")
-        if (showDonation) {
-          router.push("/donate")
-        } else {
-          router.push(redirectTo)
-        }
+        // Sempre redirecionar para doação após registro bem-sucedido
+        router.push("/donate?redirect=/#assistir")
       } else {
         setError("Erro ao criar conta")
       }
