@@ -1,17 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Performance optimizations
-  experimental: {
-    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
-      },
-    },
-  },
+  // Performance optimizations (moved to experimental section below)
   
   // Compiler optimizations
   compiler: {
@@ -122,6 +111,22 @@ const nextConfig = {
   
   // SWC minification
   swcMinify: true,
+  
+  // Transpile packages for better performance
+  transpilePackages: ['lucide-react'],
+  
+  // Experimental features
+  experimental: {
+    optimizePackageImports: ['lucide-react'],
+    turbo: {
+      rules: {
+        '*.svg': {
+          loaders: ['@svgr/webpack'],
+          as: '*.js',
+        },
+      },
+    },
+  },
 }
 
 module.exports = nextConfig

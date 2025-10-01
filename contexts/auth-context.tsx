@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
 import { toast } from "sonner"
+import { useIsClient } from "@/hooks/use-is-client"
 
 interface User {
   id: string
@@ -32,6 +33,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const isClient = useIsClient()
   const [user, setUser] = useState<User | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -45,30 +47,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    if (!isHydrated) return
+    if (!isHydrated || !isClient) return
 
     // Verificar se há token salvo no localStorage
-    const savedToken = localStorage.getItem("auth_token")
-    if (savedToken) {
-      setToken(savedToken)
-      // Decodificar token para obter dados do usuário
-      try {
-        const payload = JSON.parse(atob(savedToken.split(".")[1]))
-        const userData = {
-          id: payload.id,
-          phone: payload.phone,
-          firstName: payload.firstName,
-          lastName: payload.lastName,
-          hasDonated: false, // Será verificado no banco
+    try {
+      const savedToken = localStorage.getItem("auth_token")
+      if (savedToken) {
+        try {
+          // Verificar se o token é válido antes de usar
+          const payload = JSON.parse(atob(savedToken.split(".")[1]))
+          const currentTime = Math.floor(Date.now() / 1000)
+          
+          // Se o token expirou, remover
+          if (payload.exp && payload.exp <= currentTime) {
+            localStorage.removeItem("auth_token")
+            setToken(null)
+            setUser(null)
+          } else {
+            setToken(savedToken)
+            const userData = {
+              id: payload.id,
+              phone: payload.phone,
+              firstName: payload.firstName,
+              lastName: payload.lastName,
+              hasDonated: false, // Será verificado no banco
+            }
+            setUser(userData)
+            setHasDonated(false) // Será verificado no banco
+            setDonationStatusChecked(false) // Será verificado no banco
+          }
+        } catch (error) {
+          // Token inválido, remover
+          localStorage.removeItem("auth_token")
+          setToken(null)
+          setUser(null)
         }
-        setUser(userData)
-        setHasDonated(false) // Será verificado no banco
-        setDonationStatusChecked(false) // Será verificado no banco
-      } catch (error) {
-        // Token inválido, remover
-        localStorage.removeItem("auth_token")
-        setToken(null)
       }
+    } catch (error) {
+      // localStorage não disponível (SSR)
+      console.log('localStorage not available during SSR')
     }
     setIsLoading(false)
   }, [isHydrated]) // Depend on hydration state
@@ -150,7 +167,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setHasDonated(data.user.hasDonated || false)
         setDonationStatusChecked(false) // Será verificado após login
         if (isHydrated) {
-          localStorage.setItem("auth_token", data.token)
+          try {
+            localStorage.setItem("auth_token", data.token)
+            // Salvar token nos cookies para o middleware
+            document.cookie = `auth_token=${data.token}; path=/; max-age=${7 * 24 * 60 * 60}; secure; samesite=strict`
+          } catch (error) {
+            console.log('localStorage/document not available')
+          }
         }
         
         console.log("[AUTH] Login successful:", {
@@ -214,7 +237,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(data.user)
         setHasDonated(data.user.hasDonated || false)
         if (isHydrated) {
-          localStorage.setItem("auth_token", data.token)
+          try {
+            localStorage.setItem("auth_token", data.token)
+            // Salvar token nos cookies para o middleware
+            document.cookie = `auth_token=${data.token}; path=/; max-age=${7 * 24 * 60 * 60}; secure; samesite=strict`
+          } catch (error) {
+            console.log('localStorage/document not available')
+          }
         }
 
         toast.success("Conta criada com sucesso!", {
@@ -266,7 +295,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null)
     setHasDonated(false)
     if (isHydrated) {
-      localStorage.removeItem("auth_token")
+      try {
+        localStorage.removeItem("auth_token")
+        // Limpar cookie de autenticação
+        document.cookie = "auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
+      } catch (error) {
+        console.log('localStorage/document not available')
+      }
     }
 
     toast.success("Logout realizado", {

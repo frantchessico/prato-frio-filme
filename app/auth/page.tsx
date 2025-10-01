@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LoadingScreen } from "@/components/ui/loading"
-import { useAuth } from "@/contexts/auth-context"
+import { useAuth } from "@/contexts/auth-context-simple"
 import Link from "next/link"
 import { Phone, Lock, User, Eye, EyeOff, ArrowLeft } from "lucide-react"
 import { useEffect } from "react"
@@ -19,25 +19,25 @@ export default function AuthPage() {
   const searchParams = useSearchParams()
   const showDonation = searchParams.get("donation") === "true"
 
-  const { login, register, isAuthenticated, isHydrated } = useAuth()
+  const { login, register, isAuthenticated, isHydrated, isLoading: authLoading } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
 
   // Redirecionar usuários já autenticados para home
   useEffect(() => {
-    if (isAuthenticated && isHydrated) {
-      router.push("/")
+    if (isAuthenticated && isHydrated && !authLoading) {
+      router.replace("/")
     }
-  }, [isAuthenticated, isHydrated, router])
+  }, [isAuthenticated, isHydrated, authLoading, router])
 
   // Mostrar loading enquanto verifica hidratação
   if (!isHydrated) {
     return <LoadingScreen text="Carregando..." />
   }
 
-  // Se usuário está autenticado, não mostrar a página (será redirecionado)
+  // Se usuário está autenticado, mostrar loading enquanto redireciona
   if (isAuthenticated) {
-    return null
+    return <LoadingScreen text="Redirecionando..." />
   }
 
   const [showLoginPassword, setShowLoginPassword] = useState(false)
