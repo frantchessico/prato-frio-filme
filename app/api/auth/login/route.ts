@@ -31,7 +31,6 @@ export async function POST(request: NextRequest) {
     const token = generateToken(user)
     
     // Criar sessão
-    const clientIP = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
     const userAgent = request.headers.get('user-agent') || 'unknown'
     
     await createUserSession(user.id, token, 'web', clientIP, userAgent)
