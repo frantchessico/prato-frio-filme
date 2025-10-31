@@ -4,6 +4,50 @@ import type { NextRequest } from 'next/server'
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   
+  // Verificar bloqueio geográfico - apenas Moçambique (MZ) permitido
+  // Ignorar verificação para a rota de bloqueio e assets estáticos
+  if (!pathname.startsWith('/blocked') && 
+      !pathname.startsWith('/_next') && 
+      !pathname.startsWith('/api') &&
+      pathname !== '/favicon.ico' &&
+      !pathname.match(/\.(ico|png|jpg|jpeg|gif|svg|webp|css|js|woff|woff2|ttf|eot)$/)) {
+    
+    // Em desenvolvimento, você pode desabilitar o bloqueio definindo DISABLE_GEO_BLOCK=true
+    // Em produção, o bloqueio sempre será aplicado
+    const isDevelopment = process.env.NODE_ENV === 'development'
+    const disableGeoBlock = process.env.DISABLE_GEO_BLOCK === 'true'
+    
+    // Só não aplicar bloqueio se estiver em desenvolvimento E disableGeoBlock for true
+    // Caso contrário, aplicar bloqueio geográfico
+    if (!(isDevelopment && disableGeoBlock)) {
+      // Obter país do usuário através de headers
+      // Vercel fornece: x-vercel-ip-country
+      // Cloudflare fornece: cf-ipcountry
+      // Outros provedores podem usar: x-country-code, cloudfront-viewer-country
+      const countryCode = 
+        request.headers.get('x-vercel-ip-country')?.toUpperCase() || 
+        request.headers.get('cf-ipcountry')?.toUpperCase() ||
+        request.headers.get('x-country-code')?.toUpperCase() ||
+        request.headers.get('cloudfront-viewer-country')?.toUpperCase() ||
+        (request as any).geo?.country?.toUpperCase() ||
+        null
+      
+      // Moçambique = MZ
+      // Bloquear todos os países que não são Moçambique
+      if (countryCode && countryCode !== 'MZ') {
+        // Redirecionar para página de bloqueio
+        return NextResponse.redirect(new URL('/blocked', request.url))
+      }
+      
+      // Se não conseguirmos detectar o país, também bloqueamos por segurança
+      // Isso garante que apenas conexões com país detectado como MZ terão acesso
+      if (!countryCode) {
+        // Bloquear se não conseguir detectar o país
+        return NextResponse.redirect(new URL('/blocked', request.url))
+      }
+    }
+  }
+  
   // Verificar se o usuário está tentando acessar páginas protegidas
   if (pathname.startsWith('/donate') || pathname.startsWith('/api/user/')) {
     const token = request.cookies.get('auth_token')?.value || 
